@@ -860,9 +860,10 @@ function kioskHTML(res){const s=S.settings;const d=new Date();
 function kioskShow(res){$("#layer").innerHTML=kioskHTML(res);clearTimeout(kTimer);if(res)kTimer=setTimeout(()=>{if(KIOSK)kioskShow()},6000)}
 async function kioskScan(){
   const pool=S.employees.filter(e=>e.status!=="left"&&faceSet(e).length);if(!pool.length)return toast("لا يوجد موظفين لهم بصمة وجه مسجلة");
+  const g=await geoGate(null);if(!g)return;
   try{const r=await getFace(true);const best=pool.map(e=>[e,bestDist(e,r.desc)]).sort((a,b)=>a[1]-b[1])[0];
     if(!best||best[1]>FACE_T)return kioskShow(`<div class="res"><img src="${r.thumb}" alt=""><b style="font-size:19px">لم يتم التعرف على الوجه</b><span class="muted">حاول مرة أخرى في إضاءة أفضل</span><button class="primary" data-act="kioskScan">إعادة المحاولة</button></div>`);
-    const e=best[0];const p=await punch(e,r,best[1]);
+    const e=best[0];const p=await punch(e,r,best[1],e.anyLoc?null:g.loc);
     kioskShow(`<div class="res"><img src="${r.thumb}" alt=""><b style="font-size:21px">${esc(e.name)}</b>${p.f?`<span class="pill ${p.f==="in"?"p-ok":"p-br"}" style="font-size:14px;padding:4px 14px">${p.f==="in"?"تم تسجيل الحضور":"تم تسجيل الانصراف"} ${p.tm}</span>`:`<span class="pill p-mut" style="font-size:14px">تم تسجيل الحضور والانصراف اليوم بالفعل</span>`}</div>`);
   }catch(e){faceErr(e)}
 }
@@ -2188,8 +2189,8 @@ document.addEventListener("click",async e=>{
     case "taskNote":{const txt=$("#tk_note").value.trim();if(!txt)return;const tk=S.tasks.find(x=>x.id===id);$("#tk_note").value="";await put("tasks",id,{...tk,notes:[...(tk.notes||[]),{by:ME.name,at:new Date().toISOString(),text:txt}]});document.activeElement.blur();if(mode==="local")taskDetail(id);else setTimeout(refreshOpenDetail,300);break}
     case "attTab":attTab=t.dataset.v;render();break;
     case "markAbsent":confirmBtn(t,async()=>{const list=S.employees.filter(e=>e.status!=="left").filter(e=>{const r=S.attendance.find(x=>x.empId===e.id&&x.date===attDate);return !r||(!r.in&&(!r.status||r.status==="auto"))});for(const e of list)await saveAtt(e.id,attDate,{status:"absent"});toast(`تم تسجيل غياب ${list.length} موظف بدون إذن — غيّر الحالة لمن كان غيابه بإذن`)});break;
-    case "checkin":await saveAtt(t.dataset.emp,today(),{in:nowHM()});break;
-    case "checkout":await saveAtt(t.dataset.emp,today(),{out:nowHM()});break;
+    case "checkin":case "checkout":{const emp=S.employees.find(x=>x.id===t.dataset.emp);const g=await geoGate(emp);if(!g)break;const f=a==="checkin"?"in":"out";
+      await saveAtt(t.dataset.emp,today(),{[f]:nowHM(),[f+"By"]:ME.name,...(g.loc?{[f+"L"]:g.loc}:{})});toast(f==="in"?"تم تسجيل الحضور":"تم تسجيل الانصراف");break}
     case "selfIn":case "selfOut":{const emp=S.employees.find(x=>x.id===ME.empId);const g=await geoGate(emp);if(!g)break;const f=a==="selfIn"?"in":"out";await saveAtt(ME.empId,today(),{[f]:nowHM(),...(g.loc?{[f+"L"]:g.loc}:{})});toast(f==="in"?"تم تسجيل الحضور":"تم تسجيل الانصراف")}break;
     case "mkPay":{const lines=buildPayroll(payMonth);await put("payroll",payMonth,{month:payMonth,status:"draft",lines,total:payTotal(lines)});break}
     case "rePay":{const doc=S.payroll.find(p=>p.id===payMonth);const old=Object.fromEntries(doc.lines.map(l=>[l.empId,l]));const lines=buildPayroll(payMonth).map(l=>old[l.empId]?{...l,bonus:old[l.empId].bonus,otherDed:old[l.empId].otherDed}:l);await put("payroll",payMonth,{...doc,lines,total:payTotal(lines)});toast("تم تحديث الحساب من الحضور");break}
@@ -2262,7 +2263,8 @@ document.addEventListener("change",async e=>{const t=e.target;
   if(VD&&t.dataset.vre){vSync();if(VD.v.plan&&!VD.v.planEdited)VD.v.plan=null;drawV();return}
   if(t.dataset.lf){if(UI[t.dataset.lf].f[t.dataset.fk]===t.value)return;UI[t.dataset.lf].f[t.dataset.fk]=t.value;render();return}
   if(t.dataset.ld){UI[t.dataset.ld][t.dataset.side]=t.value;render();return}
-  if(t.dataset.att){if(!canW("attendance"))return;const k=t.dataset.att;await saveAtt(t.dataset.emp,attDate,k==="status"?{status:t.value}:{[k]:t.value,[k+"M"]:"manual",[k+"P"]:null,[k+"By"]:ME.name});return}
+  if(t.dataset.att){if(!canW("attendance"))return;const k=t.dataset.att;
+    if(!ME.admin&&k!=="status"&&(set().sites||[]).length){const emp=S.employees.find(x=>x.id===t.dataset.emp);const g=await geoGate(emp);if(!g){render();return}}await saveAtt(t.dataset.emp,attDate,k==="status"?{status:t.value}:{[k]:t.value,[k+"M"]:"manual",[k+"P"]:null,[k+"By"]:ME.name});return}
   if(t.dataset.pay){const doc=S.payroll.find(p=>p.id===payMonth);const lines=doc.lines.map(l=>({...l}));lines[+t.dataset.i][t.dataset.pay]=+t.value||0;await put("payroll",payMonth,{...doc,lines,total:payTotal(lines)});return}
   if(t.id==="attDate"){attDate=t.value||today();render()}
   if(t.id==="attMonth"){attMonth=t.value||monthOf(today());render()}
