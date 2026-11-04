@@ -742,7 +742,7 @@ async function faceFromFile(file){
   return{desc:Array.from(d.descriptor).map(x=>Math.round(x*1e4)/1e4),thumb:t.toDataURL("image/jpeg",.78)};
 }
 const fdist=(a,b)=>{let s=0;for(let i=0;i<a.length;i++){const d=a[i]-b[i];s+=d*d}return Math.sqrt(s)};
-const faceSet=e=>(e&&e.face&&e.face.ds)||[];
+const faceSet=e=>((e&&e.face&&e.face.ds)||[]).map(x=>Array.isArray(x)?x:(x&&x.v)||[]).filter(x=>x.length);
 const bestDist=(e,desc)=>{const ds=faceSet(e);return ds.length?Math.min(...ds.map(x=>fdist(x,desc))):Infinity};
 function faceErr(e){const m=e&&e.message;busy(null);if(m==="cancel")return;
   toast(m==="noface"?"لم يظهر وجه واضح في الصورة. صوّر وجهك من الأمام في إضاءة جيدة":m==="many"?"ظهر أكثر من وجه في الصورة. صوّر وجهك وحدك":m==="old"?"التقط صورة جديدة بالكاميرا الآن، الصور القديمة غير مقبولة":m==="script"||(e&&/fetch|load|model/i.test(String(e)))?"تعذر تحميل نظام التعرف على الوجه. تأكد من الاتصال وافتح النظام من رابطه":"تعذر التحقق من الوجه، حاول مرة أخرى ("+String((e&&(e.message||e.code))||e||"").slice(0,60)+")")}
@@ -771,7 +771,7 @@ async function faceAdd(id){
     if(ds.length&&bestDist(e,r.desc)>0.55){toast("الصورة لا تطابق الصور المسجلة لنفس الموظف. تأكد إنه نفس الشخص");return}
     const others=S.employees.filter(x=>x.id!==id&&faceSet(x).length).map(x=>[x,bestDist(x,r.desc)]).filter(x=>x[1]<0.42);
     if(others.length){toast(`الوجه يشبه بصمة ${others[0][0].name} المسجلة. استخدم صورة أوضح`);return}
-    const face={ds:[...ds,r.desc].slice(-3),thumbs:[...((e.face&&e.face.thumbs)||[]),r.thumb].slice(-3),at:new Date().toISOString(),by:ME.name};
+    const face={ds:[...ds,r.desc].slice(-3).map(v=>({v})),thumbs:[...((e.face&&e.face.thumbs)||[]),r.thumb].slice(-3),at:new Date().toISOString(),by:ME.name};
     const data={...e,face};delete data.id;await put("employees",id,data);toast("تم حفظ الصورة");setTimeout(()=>faceEnroll(id),80);
   }catch(err){faceErr(err)}
 }
