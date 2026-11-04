@@ -55,7 +55,7 @@ aside.side a .cnt{margin-inline-start:auto;font-size:11px;color:var(--side-mut);
 .gres a:hover{background:var(--surface-2)}
 .gres small{color:var(--muted)}
 .me{margin-inline-start:auto;display:flex;gap:8px;align-items:center;position:relative}
-.av{width:46px;height:46px;font-size:18px;border-radius:50%;box-shadow:0 0 0 2px var(--brand-soft);background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font-weight:700;overflow:hidden;flex:none}.av img{width:100%!important;height:100%!important;max-width:none!important;margin:0!important;border-radius:50%!important;object-fit:cover;display:block}.av.lg{width:110px;height:110px;font-size:40px}img.fthumb{cursor:zoom-in}.pview{display:block;max-width:100%;max-height:70vh;margin:0 auto;border-radius:12px}
+.av{width:50px;height:50px;font-size:19px;border-radius:50%;box-shadow:0 0 0 2px var(--brand-soft);background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font-weight:700;overflow:hidden;flex:none}.av img{width:100%!important;height:100%!important;max-width:none!important;margin:0!important;border-radius:50%!important;object-fit:cover;display:block}.av.lg{width:110px;height:110px;font-size:40px}img.fthumb{cursor:zoom-in}.pview{display:block;max-width:100%;max-height:70vh;margin:0 auto;border-radius:12px}
 .me .who{line-height:1.25}.me .who b{display:block;font-size:13px}.me .who small{color:var(--muted);font-size:11.5px}
 .menu{position:absolute;top:calc(100% + 6px);inset-inline-end:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.14);min-width:190px;padding:6px;z-index:30}
 .menu button{display:block;width:100%;text-align:start;border:0;background:none;padding:8px 10px}
@@ -545,7 +545,9 @@ async function getBlob(id){if(BLOBC.has(id))return BLOBC.get(id);const m=await D
   const bin=atob(d);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);const blob=new Blob([u],{type});BLOBC.set(id,blob);return blob}
 if("serviceWorker" in navigator){
   navigator.serviceWorker.addEventListener("message",async e=>{if(!e.data||e.data.t!=="blob")return;const port=e.ports[0];try{const b=await getBlob(e.data.id);port.postMessage(b?{ok:1,blob:b}:{ok:0})}catch{port.postMessage({ok:0})}});
-  navigator.serviceWorker.register("sw.js").then(()=>{if(!navigator.serviceWorker.controller)navigator.serviceWorker.addEventListener("controllerchange",()=>location.reload(),{once:true})}).catch(()=>{});
+  const hadSW=!!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{if(!window.__swReload){window.__swReload=1;location.reload()}});
+  navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(reg=>{const up=()=>reg.update().catch(()=>{});document.addEventListener("visibilitychange",()=>{if(!document.hidden)up()});setInterval(up,30*60*1000)}).catch(()=>{});
 }
 
 /* ================= calculations ================= */
@@ -733,7 +735,20 @@ function loadFace(){if(FA)return Promise.resolve(FA);if(faLoading)return faLoadi
   faLoading=(async()=>{if(!window.faceapi)await loadScript("face-api.js");const f=window.faceapi;await f.tf.ready();
     const pack=async(net,name)=>{const r=await fetch(`${name}.pack.json`);if(!r.ok)throw new Error("model");const j=await r.json();const bin=atob(j.b64);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);net.loadFromWeightMap(f.tf.io.decodeWeights(u.buffer,j.weights))};
     await Promise.all([pack(f.nets.tinyFaceDetector,"tiny_face_detector_model"),pack(f.nets.faceLandmark68Net,"face_landmark_68_model"),pack(f.nets.faceRecognitionNet,"face_recognition_model")]);FA=f;return f})().catch(e=>{faLoading=null;throw e});return faLoading}
-function pickSelfie(){return new Promise((res,rej)=>{const inp=$("#faceInput");inp.value="";
+/* laptops/desktops: live webcam window instead of the file picker */
+const isDesk=()=>!(window.matchMedia&&matchMedia("(pointer:coarse)").matches)&&!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia);
+function webcamShot(){return new Promise(async(res,rej)=>{let stream;
+  try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:1280},height:{ideal:720}},audio:false})}catch(e){return rej(new Error(e&&e.name==="NotAllowedError"?"camdenied":"nocam"))}
+  const ov=document.createElement("div");ov.style.cssText="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.82);display:grid;place-items:center;padding:16px";
+  ov.innerHTML=`<div style="background:var(--surface);color:var(--fg);border-radius:16px;padding:16px;max-width:640px;width:100%;display:grid;gap:12px"><b style="font-size:17px">📷 بص في الكاميرا</b><video autoplay playsinline muted style="width:100%;border-radius:12px;background:#000;transform:scaleX(-1)"></video><div style="display:flex;gap:10px;justify-content:flex-end"><button class="primary" data-k="shot">التقاط</button><button data-k="no">إلغاء</button></div></div>`;
+  document.body.appendChild(ov);const v=ov.querySelector("video");v.srcObject=stream;
+  const end=()=>{stream.getTracks().forEach(t=>t.stop());ov.remove()};
+  ov.addEventListener("click",ev=>{const k=ev.target.closest("[data-k]");if(!k)return;ev.stopPropagation();
+    if(k.dataset.k==="no"){end();return rej(new Error("cancel"))}
+    const c=document.createElement("canvas");c.width=v.videoWidth||1280;c.height=v.videoHeight||720;c.getContext("2d").drawImage(v,0,0,c.width,c.height);end();
+    c.toBlob(b=>b?res(new File([b],"camera.jpg",{type:"image/jpeg",lastModified:Date.now()})):rej(new Error("nocam")),"image/jpeg",.92)})})}
+function pickSelfie(){if(isDesk())return webcamShot().catch(e=>{if(e&&e.message==="nocam")return pickSelfieFile();throw e});return pickSelfieFile()}
+function pickSelfieFile(){return new Promise((res,rej)=>{const inp=$("#faceInput");inp.value="";
   const done=()=>{inp.removeEventListener("change",done);inp.removeEventListener("cancel",cancel);const f=inp.files&&inp.files[0];f?res(f):rej(new Error("cancel"))};
   const cancel=()=>{inp.removeEventListener("change",done);inp.removeEventListener("cancel",cancel);rej(new Error("cancel"))};
   inp.addEventListener("change",done);inp.addEventListener("cancel",cancel);inp.click()})}
@@ -755,7 +770,7 @@ const fdist=(a,b)=>{let s=0;for(let i=0;i<a.length;i++){const d=a[i]-b[i];s+=d*d
 const faceSet=e=>((e&&e.face&&e.face.ds)||[]).map(x=>Array.isArray(x)?x:(x&&x.v)||[]).filter(x=>x.length);
 const bestDist=(e,desc)=>{const ds=faceSet(e);return ds.length?Math.min(...ds.map(x=>fdist(x,desc))):Infinity};
 function faceErr(e){const m=e&&e.message;busy(null);if(m==="cancel")return;
-  toast(m==="noface"?"لم يظهر وجه واضح في الصورة. صوّر وجهك من الأمام في إضاءة جيدة":m==="many"?"ظهر أكثر من وجه في الصورة. صوّر وجهك وحدك":m==="old"?"التقط صورة جديدة بالكاميرا الآن، الصور القديمة غير مقبولة":m==="script"||(e&&/fetch|load|model/i.test(String(e)))?"تعذر تحميل نظام التعرف على الوجه. تأكد من الاتصال وافتح النظام من رابطه":"تعذر التحقق من الوجه، حاول مرة أخرى ("+String((e&&(e.message||e.code))||e||"").slice(0,60)+")")}
+  toast(m==="camdenied"?"اسمح للمتصفح باستخدام الكاميرا (علامة الكاميرا جنب خانة العنوان) وجرّب تاني":m==="noface"?"لم يظهر وجه واضح في الصورة. صوّر وجهك من الأمام في إضاءة جيدة":m==="many"?"ظهر أكثر من وجه في الصورة. صوّر وجهك وحدك":m==="old"?"التقط صورة جديدة بالكاميرا الآن، الصور القديمة غير مقبولة":m==="script"||(e&&/fetch|load|model/i.test(String(e)))?"تعذر تحميل نظام التعرف على الوجه. تأكد من الاتصال وافتح النظام من رابطه":"تعذر التحقق من الوجه، حاول مرة أخرى ("+String((e&&(e.message||e.code))||e||"").slice(0,60)+")")}
 async function getFace(fresh){const fp=pickSelfie();loadFace().catch(()=>{});const file=await fp;if(fresh&&file.lastModified&&Date.now()-file.lastModified>180000)throw new Error("old");busy("جاري التحقق من الوجه…");const r=await faceFromFile(file);busy(null);return r}
 function nextAttField(empId){const a=S.attendance.find(x=>x.id===`${today()}_${empId}`)||{};return !a.in?"in":!a.out?"out":null}
 /* ---- geofence: attendance only inside the work location ---- */
@@ -1371,8 +1386,8 @@ function docDetail(id){
    <label class="f">الدولة المسافر إليها<input id="tp_dest" list="countries" value="${esc(g.dest)}" ${ed?"":"disabled"}></label><label class="f">تاريخ السفر<input type="date" id="tp_tr" value="${esc(g.tr)}" ${ed?"":"disabled"}></label><label class="f">تاريخ العودة<input type="date" id="tp_ret" value="${esc(g.ret)}" ${ed?"":"disabled"}></label></div>
    ${ed?`<div class="foot" style="margin-top:10px"><button data-act="tripSave" data-id="${id}">حفظ البيانات</button></div>`:""}</div>
   <div class="sec">جوازات السفر (${pax.length})</div>
-  ${ed?`<div class="card" style="margin-bottom:8px"><div class="grid2"><label class="f full">صور الجوازات (اختار صورة أو أكتر، كل صورة جواز)<input type="file" id="px_files" multiple accept="image/jpeg,image/png,image/webp,image/gif"><small>${SAMPLE?"الذكاء الاصطناعي هيقرأ: الاسم، اللقب، الجنسية، تاريخ الميلاد، رقم الجواز، تاريخ الانتهاء. راجِع البيانات بعدها.":"أدخل بيانات كل جواز يدويًا بعد رفع صورته."}</small></label></div>
-   <div class="foot" style="margin-top:10px">${up?`<button class="primary" data-act="paxScan" data-id="${id}">${ic("face")}${SAMPLE?"رفع وقراءة الجوازات":"رفع الجوازات"}</button>`:""}<button data-act="paxAdd" data-id="${id}">${ic("plus")}إضافة يدوي</button></div><div id="px_prog" class="muted" style="font-size:12.5px;margin-top:6px"></div></div>`:""}
+  ${ed?`<div class="card" style="margin-bottom:8px"><div class="grid2"><label class="f full">صور الجوازات (اختار صورة أو أكتر، كل صورة جواز)<input type="file" id="px_files" multiple accept="image/jpeg,image/png,image/webp,image/gif"><small>${SAMPLE?"الذكاء الاصطناعي هيقرأ: الاسم، اللقب، الجنسية، تاريخ الميلاد، رقم الجواز، تاريخ الانتهاء. راجِع البيانات بعدها.":"التطبيق هيقرأ السطرين اللي تحت صفحة الجواز (‎P&lt;EGY…‎) ويطلع منهم الاسم والجنسية وتاريخ الميلاد ورقم الجواز والانتهاء — مجانًا وعلى الجهاز. صوّر الصفحة كاملة ومستقيمة ومن غير انعكاس فلاش، وراجِع البيانات بعدها."}</small></label></div>
+   <div class="foot" style="margin-top:10px">${up?`<button class="primary" data-act="paxScan" data-id="${id}">${ic("face")}رفع وقراءة الجوازات</button>`:""}<button data-act="paxAdd" data-id="${id}">${ic("plus")}إضافة يدوي</button></div><div id="px_prog" class="muted" style="font-size:12.5px;margin-top:6px"></div></div>`:""}
   <div class="tablewrap solo" style="margin-bottom:12px"><table class="t"><thead><tr><th>#</th><th>الاسم</th><th>الجنسية</th><th>تاريخ الميلاد</th><th>رقم الجواز</th><th>الانتهاء</th><th>المصدر</th><th></th></tr></thead><tbody>${paxRows||`<tr><td colspan="8" class="muted">لا توجد جوازات بعد</td></tr>`}</tbody></table></div>
   <div class="sec">الفاوتشرات وتذاكر الطيران</div>
   ${up?`<div class="card" style="margin-bottom:8px"><div class="grid2"><label class="f">النوع<select id="dc_kind">${DOCKINDS.map(k=>`<option>${k}</option>`).join("")}</select></label><label class="f">ملاحظة (اختياري)<input id="dc_note" placeholder="مثال: فندق Rixos · رقم الحجز 88231"></label><label class="f">الملف (PDF أو صورة)<input type="file" id="dc_file" multiple accept="application/pdf,image/png,image/jpeg,image/webp,image/gif"></label></div><div class="foot" style="margin-top:10px"><button class="primary" data-act="docUp" data-id="${id}">${ic("plus")}رفع وحفظ</button></div></div>`:""}
@@ -1385,6 +1400,46 @@ async function tripSave(id){const no=groupNo(id),k=okey(no);const cur=(S.trips||
 const PROMPT_PASSPORT=`This image is the data page of a passport. Read it carefully (use the MRZ lines at the bottom to confirm). Reply with only this JSON object, using null for anything you cannot read:
 {"surname":"","given_names":"","nationality":"country name in English","date_of_birth":"YYYY-MM-DD","passport_number":"","expiry_date":"YYYY-MM-DD","sex":"M or F","is_passport":true}
 If the image is not a passport, set "is_passport" to false.`;
+/* ---- free passport reading: MRZ (the 2 lines at the bottom) via Tesseract OCR, on the device ---- */
+const NAT={AFG:"Afghanistan",ARE:"United Arab Emirates",ALB:"Albania",ARM:"Armenia",AUS:"Australia",AUT:"Austria",AZE:"Azerbaijan",BEL:"Belgium",BGD:"Bangladesh",BGR:"Bulgaria",BHR:"Bahrain",BIH:"Bosnia and Herzegovina",BLR:"Belarus",BRA:"Brazil",CAN:"Canada",CHE:"Switzerland",CHN:"China",CYP:"Cyprus",CZE:"Czechia",D:"Germany",DEU:"Germany",DNK:"Denmark",DZA:"Algeria",EGY:"Egypt",ESP:"Spain",ETH:"Ethiopia",FIN:"Finland",FRA:"France",GBR:"United Kingdom",GEO:"Georgia",GRC:"Greece",HRV:"Croatia",HUN:"Hungary",IDN:"Indonesia",IND:"India",IRL:"Ireland",IRN:"Iran",IRQ:"Iraq",ISL:"Iceland",ITA:"Italy",JOR:"Jordan",JPN:"Japan",KAZ:"Kazakhstan",KEN:"Kenya",KGZ:"Kyrgyzstan",KOR:"South Korea",KWT:"Kuwait",LBN:"Lebanon",LBY:"Libya",LKA:"Sri Lanka",MAR:"Morocco",MDA:"Moldova",MDV:"Maldives",MEX:"Mexico",MNE:"Montenegro",MYS:"Malaysia",NGA:"Nigeria",NLD:"Netherlands",NOR:"Norway",NPL:"Nepal",NZL:"New Zealand",OMN:"Oman",PAK:"Pakistan",PHL:"Philippines",POL:"Poland",PRT:"Portugal",PSE:"Palestine",QAT:"Qatar",ROU:"Romania",RUS:"Russia",SAU:"Saudi Arabia",SDN:"Sudan",SGP:"Singapore",SOM:"Somalia",SRB:"Serbia",SVK:"Slovakia",SVN:"Slovenia",SWE:"Sweden",SYR:"Syria",THA:"Thailand",TJK:"Tajikistan",TKM:"Turkmenistan",TUN:"Tunisia",TUR:"Turkey",UKR:"Ukraine",USA:"United States",UZB:"Uzbekistan",VNM:"Vietnam",YEM:"Yemen",ZAF:"South Africa"};
+const mrzVal=c=>c==="<"?0:/\d/.test(c)?+c:c.charCodeAt(0)-55;
+const mrzCk=s=>{let t=0;for(let i=0;i<s.length;i++)t+=mrzVal(s[i])*[7,3,1][i%3];return String(t%10)};
+const toNum=s=>s.replace(/O|D|Q/g,"0").replace(/[IL]/g,"1").replace(/Z/g,"2").replace(/S/g,"5").replace(/B/g,"8").replace(/G/g,"6").replace(/T/g,"7").replace(/</g,"0");
+const toAlpha=s=>s.replace(/0/g,"O").replace(/1/g,"I").replace(/5/g,"S").replace(/8/g,"B").replace(/2/g,"Z").replace(/6/g,"G");
+function mrzDate(s,future){if(!/^\d{6}$/.test(s))return"";const yy=+s.slice(0,2),mm=s.slice(2,4),dd=s.slice(4,6);if(+mm<1||+mm>12||+dd<1||+dd>31)return"";const cy=new Date().getFullYear()%100;const y=future?2000+yy:(yy>cy?1900+yy:2000+yy);return `${y}-${mm}-${dd}`}
+/* try swapping look-alike letters/digits in the document number until its check digit matches */
+function fixDocNo(no,ck){const sw={"O":"0","D":"0","Q":"0","I":"1","L":"1","S":"5","B":"8","Z":"2","G":"6","0":"O","1":"I","5":"S","8":"B"};
+  if(mrzCk(no)===ck)return{no,ok:true};const idx=[...no].map((c,i)=>sw[c]?i:-1).filter(i=>i>=0).slice(0,8);
+  const masks=[];for(let m=1;m<(1<<idx.length);m++)masks.push(m);masks.sort((x,y)=>x.toString(2).split("1").length-y.toString(2).split("1").length);
+  for(const m of masks){const bits=m.toString(2).split("1").length-1;if(bits>2)break;const a=[...no];idx.forEach((p,b)=>{if(m&(1<<b))a[p]=sw[a[p]]});const t=a.join("");if(mrzCk(t)===ck)return{no:t,ok:true}}return{no,ok:false}}
+function parseMRZ(text){
+  const L=String(text||"").toUpperCase().replace(/[«‹≤]/g,"<").split(/\n+/).map(l=>l.replace(/\s+/g,"").replace(/[^A-Z0-9<]/g,"")).filter(l=>l.length>=28);
+  let i=L.findIndex((l,k)=>/^P[A-Z0-9<]/.test(l)&&l.includes("<<")&&L[k+1]);
+  if(i<0)i=L.length-2;if(i<0)return null;
+  const fit=s=>(s+"<".repeat(44)).slice(0,44);const a=fit(L[i]),b=fit(L[i+1]||"");
+  const docRaw=b.slice(0,9).replace(/</g,""),docCk=toNum(b[9]);const nat=toAlpha(b.slice(10,13)).replace(/</g,"");
+  const dobS=toNum(b.slice(13,19)),dobCk=toNum(b[19]),sex=b[20]==="F"?"F":b[20]==="M"?"M":"",expS=toNum(b.slice(21,27)),expCk=toNum(b[27]);
+  const doc=fixDocNo(b.slice(0,9),docCk);
+  const names=toAlpha(a.slice(5)).replace(/(K{2,}[<KC]*|<[<KC]*)$/,"").replace(/<K{1,2}</g,"<<");
+  const [sur,...rest]=names.split("<<");const given=rest.join(" ").replace(/</g," ").replace(/\s+/g," ").trim();
+  const checks={doc:doc.ok,dob:mrzCk(dobS)===dobCk,exp:mrzCk(expS)===expCk};
+  const score=Object.values(checks).filter(Boolean).length;
+  return{surname:(sur||"").replace(/</g," ").trim(),givenNames:given,nationality:NAT[nat]||nat,dob:mrzDate(dobS,false),passportNo:doc.no.replace(/</g,""),expiry:mrzDate(expS,true),sex,checks,score,docRaw};
+}
+let OCRW=null;
+async function ocrWorker(prog){if(OCRW)return OCRW;
+  if(!window.Tesseract){prog&&prog("أول مرة: تحميل نظام قراءة الجوازات (حوالي 10 ميجا)…");await loadScript("https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js")}
+  const w=await Tesseract.createWorker("eng",1);await w.setParameters({tessedit_char_whitelist:"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<",tessedit_pageseg_mode:"6",preserve_interword_spaces:"0"});OCRW=w;return w}
+async function imgCanvas(file,rot,part){const im=await fileImage(file);let W=im.width,H=im.height;const sw=rot%180?H:W,sh=rot%180?W:H;
+  const c=document.createElement("canvas");const k=Math.min(2.2,1800/sw);c.width=Math.round(sw*k);c.height=Math.round(sh*k);const g=c.getContext("2d");g.translate(c.width/2,c.height/2);g.rotate(rot*Math.PI/180);g.drawImage(im,-W*k/2,-H*k/2,W*k,H*k);
+  let out=c;if(part){const y=Math.round(c.height*(1-part));out=document.createElement("canvas");out.width=c.width;out.height=c.height-y;out.getContext("2d").drawImage(c,0,y,c.width,out.height,0,0,c.width,out.height)}
+  const x=out.getContext("2d"),d=x.getImageData(0,0,out.width,out.height),p=d.data;for(let j=0;j<p.length;j+=4){let v=.3*p[j]+.59*p[j+1]+.11*p[j+2];v=v<110?0:v>170?255:(v-110)*4.25;p[j]=p[j+1]=p[j+2]=v}x.putImageData(d,0,0);return out}
+async function readPassportMRZ(file,prog){const w=await ocrWorker(prog);let best=null;
+  for(const [rot,part] of [[0,.4],[0,0],[90,.4],[270,.4],[180,.4]]){
+    const c=await imgCanvas(file,rot,part);const {data:{text}}=await w.recognize(c);const r=parseMRZ(text);
+    if(r&&(!best||r.score>best.score))best=r;if(best&&best.score>=2)break}
+  return best&&best.score>=1?best:null}
+
 async function paxScan(id){
   const fl=[...($("#px_files")&&$("#px_files").files||[])];if(!fl.length)return toast("اختر صور الجوازات أولًا");const no=groupNo(id);const prog=t=>{const e=$("#px_prog");if(e)e.textContent=t};let ok=0,bad=0;
   for(let i=0;i<fl.length;i++){const f=fl[i];const ext=(f.name.split(".").pop()||"").toLowerCase();const type=MIME[ext]||f.type;if(!/^image\//.test(type)){bad++;continue}
@@ -1396,6 +1451,10 @@ async function paxScan(id){
         if(j&&j.is_passport!==false){ai=true;const dt=v=>/^\d{4}-\d{2}-\d{2}$/.test(String(v||""))?String(v):"";d={surname:String(j.surname||"").trim(),givenNames:String(j.given_names||"").trim(),nationality:String(j.nationality||"").trim(),dob:dt(j.date_of_birth),passportNo:String(j.passport_number||"").replace(/\s+/g,"").toUpperCase(),expiry:dt(j.expiry_date),sex:/^[MF]$/i.test(j.sex||"")?String(j.sex).toUpperCase():""}}
         else toast(`${f.name}: الصورة مش واضح إنها جواز، اتحفظت للمراجعة اليدوية`)}
       catch(e){const c=e&&e.code;if(c==="not_granted"||c==="sampling_disabled"||c==="images_unavailable"){SAMPLE=null;toast("قراءة الجواز بالذكاء الاصطناعي غير متاحة، كمّل يدويًا")}else toast(`تعذرت قراءة ${f.name}، أكمل بياناته يدويًا`)}}
+    else{prog(`(${i+1}/${fl.length}) جاري قراءة السطرين اللي تحت الجواز في ${f.name}…`);
+      try{const m=await readPassportMRZ(f,prog);if(m){ai=true;d={surname:m.surname,givenNames:m.givenNames,nationality:m.nationality,dob:m.dob,passportNo:m.passportNo,expiry:m.expiry,sex:m.sex,ocr:true,mrzOk:m.score===3};if(m.score<3)toast(`${f.name}: اتقرا بس فيه حروف مش متأكد منها — راجعه`)}
+        else toast(`${f.name}: مقدرتش أقرا السطرين اللي تحت الجواز. صوّره أوضح أو أدخل البيانات يدويًا`)}
+      catch(e){toast(`تعذرت قراءة ${f.name}، أكمل بياناته يدويًا`)}}
     try{await put("travelers",uid(),{orderNo:no,...d,ai,checked:false,asset,by:ME.name,at:new Date().toISOString()});ok++}catch{bad++}}
   prog("");toast(`تم حفظ ${ok} جواز${bad?` · تعذر ${bad}`:""}`);setTimeout(()=>ok?paxView(id):docDetail(id),80);
 }

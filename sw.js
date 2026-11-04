@@ -1,5 +1,5 @@
 /* Almaha Holidays app — service worker: app shell cache + /_blob/<id> files from Firestore via the page */
-const V="almaha-v6";
+const V="almaha-v8";
 const SHELL=["./","index.html","config.js","manifest.json","./icon-192.png","./icon-512.png"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(SHELL)).catch(()=>{}));self.skipWaiting()});
 self.addEventListener("activate",e=>{e.waitUntil((async()=>{for(const k of await caches.keys())if(k!==V&&k!=="almaha-blobs")await caches.delete(k);await self.clients.claim()})())});
@@ -19,5 +19,7 @@ self.addEventListener("fetch",e=>{
     return}
   if(e.request.method!=="GET"||u.origin!==location.origin)return;
   // network first for the app shell so updates arrive; cache as offline fallback
-  e.respondWith(fetch(e.request).then(r=>{if(r.ok){const cp=r.clone();caches.open(V).then(c=>c.put(e.request,cp))}return r}).catch(()=>caches.match(e.request).then(r=>r||caches.match("index.html"))));
+  // always revalidate the app files with the server so updates show up right away
+  const fresh=e.request.mode==="navigate"?fetch(u.href,{cache:"no-cache",credentials:"same-origin"}):fetch(new Request(e.request,{cache:"no-cache"}));
+  e.respondWith(fresh.then(r=>{if(r.ok){const cp=r.clone();caches.open(V).then(c=>c.put(e.request,cp))}return r}).catch(()=>caches.match(e.request).then(r=>r||caches.match("index.html"))));
 });
