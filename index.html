@@ -436,8 +436,9 @@ function vActivity(){
   const rows=S.activity.filter(a=>(actF==="all"||ACT_T[a.col]&&ACT_T[a.col][0]===actF)&&(!actDay||(a.at||"").slice(0,10)===actDay)).sort((a,b)=>(b.at||"").localeCompare(a.at||"")).slice(0,300);
   const kinds=[...new Set(Object.values(ACT_T).map(x=>x[0]))];
   const tm=a=>new Date(a.at).toLocaleString("ar-EG",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+  const sel=SEL.act||(SEL.act=new Set());LAST.act={o:{select:{del:x=>delRaw("activity",x)}},rows};const ok=new Set(rows.map(r=>r.id));[...sel].forEach(i=>{if(!ok.has(i))sel.delete(i)});
   return head("سجل النشاط والتنبيهات","كل حركة على البرنامج: مين عملها وإمتى — تظهر لك فورًا كتنبيه وأنت فاتح البرنامج",`<input type="date" id="actDay" value="${actDay}" style="width:auto"><select id="actF" style="width:auto"><option value="all">كل الأنواع</option>${kinds.map(k=>`<option ${actF===k?"selected":""}>${k}</option>`).join("")}</select>`)+
-  `<div class="card">${rows.length?`<table class="t"><tbody>${rows.map(a=>{const T=ACT_T[a.col]||["",""];return `<tr><td style="width:56px">${a.photo?`<img class="fthumb" src="${a.photo}" alt="" style="width:48px;height:48px">`:`<span class="pill ${T[1]}">${T[0]}</span>`}</td><td><b>${esc(a.title)}</b><div class="sub">${esc(a.text)}</div></td><td class="muted">${esc(a.by)}</td><td class="muted n" style="white-space:nowrap">${tm(a)}</td><td><a class="ghost sm" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid var(--line);border-radius:8px" href="${actWa(a)}" target="_blank" rel="noopener">واتساب</a></td></tr>`}).join("")}</tbody></table>`:`<div class="empty"><b>لا يوجد نشاط</b>أي تسجيل حضور أو فاتورة أو فاوتشر أو عميل جديد هيظهر هنا.</div>`}</div>`;
+  `<div class="card">${rows.length?`${selBar("act",sel.size,rows.length,"التنبيهات")}<table class="t"><thead><tr><th style="width:34px"><input type="checkbox" data-act="selAll" data-k="act" ${sel.size&&sel.size===rows.length?"checked":""} title="تحديد الكل" style="width:18px;height:18px"></th><th></th><th>الحركة</th><th>بواسطة</th><th>الوقت</th><th></th></tr></thead><tbody>${rows.map(a=>{const T=ACT_T[a.col]||["",""];return `<tr><td><input type="checkbox" data-act="selRow" data-k="act" data-id="${a.id}" ${sel.has(a.id)?"checked":""} style="width:18px;height:18px"></td><td style="width:56px">${a.photo?`<img class="fthumb" src="${a.photo}" alt="" style="width:48px;height:48px">`:`<span class="pill ${T[1]}">${T[0]}</span>`}</td><td><b>${esc(a.title)}</b><div class="sub">${esc(a.text)}</div></td><td class="muted">${esc(a.by)}</td><td class="muted n" style="white-space:nowrap">${tm(a)}</td><td><a class="ghost sm" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid var(--line);border-radius:8px" href="${actWa(a)}" target="_blank" rel="noopener">واتساب</a></td></tr>`}).join("")}</tbody></table>`:`<div class="empty"><b>لا يوجد نشاط</b>أي تسجيل حضور أو فاتورة أو فاوتشر أو عميل جديد هيظهر هنا.</div>`}</div>`;
 }
 function stamp(d){return{...d,updatedAt:new Date().toISOString(),updatedBy:ME?ME.name:""}}
 async function put(col,id,data){
@@ -650,6 +651,8 @@ function ordStatus(o){if(!o.inv.length)return["بدون فاتورة عميل","
 
 /* ================= list engine ================= */
 const UI={};const LAST={};
+const SEL={};
+function selBar(k,n,all,label){if(!all)return"";return `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px"><span class="muted" style="font-size:12.5px">${n?`محدد ${n} من ${all}`:`حدد ${label||"عناصر"} بالمربعات للحذف`}</span>${n?`<button class="ghost sm danger" data-act="selDel" data-k="${k}">🗑 حذف المحدد (${n})</button><button class="ghost sm" data-act="selClear" data-k="${k}">إلغاء التحديد</button>`:""}<button class="ghost sm danger" data-act="selDelAll" data-k="${k}">🗑 حذف الكل (${all})</button></div>`}
 function listView(o){
   const u=UI[o.key]||(UI[o.key]={q:"",f:{},from:"",to:""});
   let rows=o.rows;
@@ -657,15 +660,18 @@ function listView(o){
   (o.filters||[]).forEach(f=>{const v=u.f[f.k];if(v)rows=rows.filter(r=>f.test(r,v))});
   if(u.q){const q=norm(u.q).trim().split(/\s+/);rows=rows.filter(r=>{const hay=norm(o.cols.map(c=>c.t(r)).join(" ")+" "+(o.extra?o.extra(r):""));return q.every(w=>hay.includes(w))})}
   LAST[o.key]={o,rows,u};
+  const sel=o.select?(SEL[o.key]||(SEL[o.key]=new Set())):null;const canSel=r=>!o.select||!o.select.can||o.select.can(r);
+  if(sel){const ok=new Set(rows.filter(canSel).map(r=>r.id));[...sel].forEach(i=>{if(!ok.has(i))sel.delete(i)})}
+  const selN=sel?sel.size:0,selAllN=sel?rows.filter(canSel).length:0;
   const fl=(o.filters||[]).map(f=>f.text?`<input id="f_${o.key}_${f.k}" data-lf="${o.key}" data-fk="${f.k}" list="${f.list||""}" value="${esc(u.f[f.k]||"")}" placeholder="${esc(f.l)}" aria-label="${esc(f.l)}" style="max-width:170px">`:`<select id="f_${o.key}_${f.k}" data-lf="${o.key}" data-fk="${f.k}" aria-label="${esc(f.l)}"><option value="">${esc(f.l)}: الكل</option>${f.o().map(x=>{const[v,t]=Array.isArray(x)?x:[x,x];return `<option value="${esc(v)}" ${u.f[f.k]===String(v)?"selected":""}>${esc(t)}</option>`}).join("")}</select>`).join("");
   const dr=o.date?`<input type="date" id="d_${o.key}_from" data-ld="${o.key}" data-side="from" value="${u.from}" aria-label="من تاريخ" title="من تاريخ"><input type="date" id="d_${o.key}_to" data-ld="${o.key}" data-side="to" value="${u.to}" aria-label="إلى تاريخ" title="إلى تاريخ">`:"";
   const any=u.q||u.from||u.to||Object.values(u.f).some(Boolean);
   const bar=`<div class="bar"><div class="q">${ic("search")}<input id="q_${o.key}" data-lq="${o.key}" value="${esc(u.q)}" placeholder="${esc(o.ph||"بحث…")}" aria-label="بحث"></div>${fl}${dr}${any?`<button class="ghost sm" data-act="clearF" data-k="${o.key}">مسح الفلاتر</button>`:""}<span class="count">${rows.length} من ${o.rows.length}</span><button class="sm" data-act="lpdf" data-k="${o.key}">${ic("print")}طباعة PDF</button><button class="sm" data-act="lcsv" data-k="${o.key}">${ic("dl")}Excel</button></div>`;
   const cols=o.cols.filter(c=>!c.exportOnly);
   const sums=cols.map(c=>c.sum?r2(rows.reduce((a,r)=>a+(+c.t(r)||0),0)):null);
-  const body=rows.length?rows.map(r=>`<tr ${o.rowAct?`class="click" data-act="${o.rowAct}" data-id="${r.id}"`:""}>${cols.map(c=>`<td class="${c.n?"n":""}">${c.v?c.v(r):c.n?money(c.t(r)):esc(c.t(r))}</td>`).join("")}${o.actions?`<td>${o.actions(r)}</td>`:""}</tr>`).join(""):`<tr><td colspan="${cols.length+(o.actions?1:0)}"><div class="empty"><b>${o.rows.length?"لا توجد نتائج":o.emptyT}</b>${o.rows.length?"جرّب كلمة بحث أخرى أو امسح الفلاتر.":o.emptyD}</div></td></tr>`;
-  const foot=rows.length&&sums.some(x=>x!=null)?`<tfoot><tr>${cols.map((c,i)=>`<td class="${c.n?"n":""}">${i===0?"الإجمالي":sums[i]!=null?(c.int?sums[i]:money(sums[i])):""}</td>`).join("")}${o.actions?"<td></td>":""}</tr></tfoot>`:"";
-  return `${bar}<div class="tablewrap"><table class="t"><thead><tr>${cols.map(c=>`<th class="${c.n?"n":""}">${c.h}</th>`).join("")}${o.actions?"<th></th>":""}</tr></thead><tbody>${body}</tbody>${foot}</table></div>`;
+  const body=rows.length?rows.map(r=>`<tr ${o.rowAct?`class="click" data-act="${o.rowAct}" data-id="${r.id}"`:""}>${sel?`<td>${canSel(r)?`<input type="checkbox" data-act="selRow" data-k="${o.key}" data-id="${r.id}" ${sel.has(r.id)?"checked":""} style="width:18px;height:18px">`:""}</td>`:""}${cols.map(c=>`<td class="${c.n?"n":""}">${c.v?c.v(r):c.n?money(c.t(r)):esc(c.t(r))}</td>`).join("")}${o.actions?`<td>${o.actions(r)}</td>`:""}</tr>`).join(""):`<tr><td colspan="${cols.length+(o.actions?1:0)}"><div class="empty"><b>${o.rows.length?"لا توجد نتائج":o.emptyT}</b>${o.rows.length?"جرّب كلمة بحث أخرى أو امسح الفلاتر.":o.emptyD}</div></td></tr>`;
+  const foot=rows.length&&sums.some(x=>x!=null)?`<tfoot><tr>${sel?"<td></td>":""}${cols.map((c,i)=>`<td class="${c.n?"n":""}">${i===0?"الإجمالي":sums[i]!=null?(c.int?sums[i]:money(sums[i])):""}</td>`).join("")}${o.actions?"<td></td>":""}</tr></tfoot>`:"";
+  return `${bar}${sel?selBar(o.key,selN,selAllN,o.select.label):""}<div class="tablewrap"><table class="t"><thead><tr>${sel?`<th style="width:34px">${selAllN?`<input type="checkbox" data-act="selAll" data-k="${o.key}" ${selN&&selN===selAllN?"checked":""} title="تحديد الكل" style="width:18px;height:18px">`:""}</th>`:""}${cols.map(c=>`<th class="${c.n?"n":""}">${c.h}</th>`).join("")}${o.actions?"<th></th>":""}</tr></thead><tbody>${body}</tbody>${foot}</table></div>`;
 }
 function filterDesc(k){const L=LAST[k];if(!L)return"";const{o,u}=L;const p=[];if(u.q)p.push(`بحث: «${u.q}»`);(o.filters||[]).forEach(f=>{const v=u.f[f.k];if(v&&f.text){p.push(`${f.l}: ${v}`);return}if(v){const x=f.o().find(x=>String(Array.isArray(x)?x[0]:x)===v);p.push(`${f.l}: ${Array.isArray(x)?x[1]:x}`)}});if(u.from)p.push(`من ${dAr(u.from)}`);if(u.to)p.push(`إلى ${dAr(u.to)}`);return p.join(" · ")}
 function listPdf(k){const{o,rows}=LAST[k];const cols=o.cols.filter(c=>!c.uiOnly);
@@ -1155,6 +1161,7 @@ function vAttendance(){
   const missing=!fri&&attDate<=today()&&ed?rows.filter(a=>!a.in&&(!a.status||a.status==="auto")).length:0;
   return head("الحضور والانصراف",`${dAr(attDate)} · ${fri?`<span class="pill p-mut">الجمعة إجازة أسبوعية · أي عمل اليوم أوفر تايم</span>`:"كل موظف حسب موعد دوامه"}`,`${myAttBtn()}${missing?`<button data-act="markAbsent">تسجيل غياب لمن لم يحضر (${missing})</button>`:""}${tabs}<input type="date" id="attDate" value="${attDate}" style="width:auto">`)+
   listView({key:"attd",title:`الحضور والانصراف ${dAr(attDate)}`,file:`attendance-${attDate}`,rows,ph:"ابحث عن موظف…",emptyT:"",emptyD:"",
+   select:ME.admin?{label:"سجلات الحضور",can:a=>!!(a.in||a.out||(a.status&&a.status!=="auto")),del:empId=>del("attendance",`${attDate}_${empId}`)}:null,
    filters:[{k:"st",l:"الحالة",o:()=>[...Object.entries(ATT).map(([k,v])=>[k,v[0]]),["none","لم يُسجّل"]],test:(a,v)=>(attStatus(a,st)||"none")===v}],
    cols:[{h:"الموظف",t:a=>a._e.name,v:a=>{const sc=empSched(a._e,st);return `<b>${esc(a._e.name)}</b><div class="sub">${esc(a._e.job||"")} · <span class="n" dir="ltr">${sc.start} – ${sc.end}</span></div>`}},
     {h:"الحضور",t:a=>a.in||"",v:a=>ed?`<input type="time" id="ai_${a.id}" value="${a.in||""}" data-att="in" data-emp="${a.id}" style="width:118px">`:esc(a.in||"—")},
@@ -1294,7 +1301,7 @@ function vCompany(){
    <label class="f full">نص الإيميل<textarea id="s_mailBody" rows="6">${esc(s.mailBody||TPL_BODY)}</textarea></label>
    <label class="f">نسخة لكل إيميل (CC)<input id="s_mailCc" dir="ltr" value="${esc(s.mailCc||s.email||"")}"></label>
    <label class="f">الإيميل يتبعت من<select id="s_mailVia"><option value="gmail" ${(s.mailVia||"gmail")==="gmail"?"selected":""}>Gmail</option><option value="app" ${s.mailVia==="app"?"selected":""}>تطبيق البريد على الجهاز</option></select></label>
-   <label class="f">كود الدولة للأرقام المحلية<input id="s_waCode" dir="ltr" value="${esc(s.waCode||"971")}"><small>لو رقم العميل مكتوب 05xxxxxxxx</small></label></div></div>
+   <label class="f">مفتاح الدولة الافتراضي${ccSelect("s_waCode",String(s.waCode||"971"))}<small>بيتحط تلقائي في شاشة الإرسال — وتقدر تغيّره لكل رسالة</small></label></div></div>
   <div class="card"><h3>تنبيهات واتساب</h3><div class="grid2">${f("waNumber","رقم الواتساب لاستلام التنبيهات (بالكود الدولي)","tel")}</div><p class="muted" style="font-size:12.5px;margin:8px 0 0">كل حركة في <a href="#activity">سجل النشاط</a> لها زر "واتساب" يفتح الرسالة جاهزة على الرقم ده.</p></div>
   <div class="card"><h3>الدوام والحضور</h3><div class="grid2">${f("workStart","بداية الدوام الافتراضية","time")}${f("workEnd","نهاية الدوام الافتراضية","time")}${f("grace","دقائق السماح (تأخير بسيط بلا خصم)","number")}${f("otRate","معدل الأوفر تايم بعد الدوام (×)","number")}${f("otFriRate","معدل أوفر تايم يوم الجمعة (×)","number")}<p class="muted full" style="font-size:12.5px;margin:0">موعد كل موظف يُعدّل من ملفه. الجمعة إجازة للجميع. التأخير أكثر من 30 دقيقة = خصم نصف يوم، الغياب بدون إذن = 3 أيام، بإذن = يوم.</p>
    <label class="f full" style="display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="s_faceReq" style="width:auto" ${s.faceRequired?"checked":""}> الحضور والانصراف ببصمة الوجه فقط (إلغاء التسجيل اليدوي للموظفين)</label></div></div>
@@ -1569,12 +1576,18 @@ const TPL_SUB="{doc} {no} — {company}";
 const TPL_BODY="مرحبًا {name}،\n\nمرفق {doc} {no}.\n{total}\n\nلأي استفسار تواصل معنا على {phone} أو بالرد على هذا الإيميل.\n\nمع تحيات،\n{company}";
 function fillTpl(t,c){const st=set();const tot=c.total?`الإجمالي: ${c.total}${c.balance?` · المتبقي: ${c.balance}`:""}`:"";
   return String(t||"").replace(/\{(\w+)\}/g,(m,k)=>({name:c.name||"",doc:c.doc||"الملف",no:c.no||"",total:tot,company:st.name||"Almaha Holidays",phone:st.phone||"",email:st.email||""})[k]??m).replace(/\n{3,}/g,"\n\n").replace(/ +\n/g,"\n").trim()}
-function waNum(p){let d=String(p||"").replace(/[^\d+]/g,"");if(!d)return"";if(d.startsWith("+"))return d.slice(1);if(d.startsWith("00"))return d.slice(2);const cc=String(set().waCode||"971").replace(/\D/g,"");if(d.startsWith("0"))d=d.slice(1);return d.length<=10?cc+d:d}
+const CCODES=[["971","🇦🇪 الإمارات"],["20","🇪🇬 مصر"],["966","🇸🇦 السعودية"],["965","🇰🇼 الكويت"],["974","🇶🇦 قطر"],["973","🇧🇭 البحرين"],["968","🇴🇲 عُمان"],["962","🇯🇴 الأردن"],["961","🇱🇧 لبنان"],["964","🇮🇶 العراق"],["963","🇸🇾 سوريا"],["970","🇵🇸 فلسطين"],["249","🇸🇩 السودان"],["212","🇲🇦 المغرب"],["213","🇩🇿 الجزائر"],["216","🇹🇳 تونس"],["218","🇱🇾 ليبيا"],["967","🇾🇪 اليمن"],["91","🇮🇳 الهند"],["92","🇵🇰 باكستان"],["880","🇧🇩 بنجلاديش"],["63","🇵🇭 الفلبين"],["94","🇱🇰 سريلانكا"],["977","🇳🇵 نيبال"],["62","🇮🇩 إندونيسيا"],["60","🇲🇾 ماليزيا"],["66","🇹🇭 تايلاند"],["90","🇹🇷 تركيا"],["995","🇬🇪 جورجيا"],["994","🇦🇿 أذربيجان"],["374","🇦🇲 أرمينيا"],["7","🇷🇺 روسيا / كازاخستان"],["998","🇺🇿 أوزبكستان"],["44","🇬🇧 بريطانيا"],["1","🇺🇸 أمريكا / كندا"],["49","🇩🇪 ألمانيا"],["33","🇫🇷 فرنسا"],["39","🇮🇹 إيطاليا"],["34","🇪🇸 إسبانيا"],["41","🇨🇭 سويسرا"],["30","🇬🇷 اليونان"],["43","🇦🇹 النمسا"],["31","🇳🇱 هولندا"],["255","🇹🇿 تنزانيا"],["254","🇰🇪 كينيا"],["230","🇲🇺 موريشيوس"],["960","🇲🇻 المالديف"],["86","🇨🇳 الصين"],["81","🇯🇵 اليابان"],["82","🇰🇷 كوريا"],["61","🇦🇺 أستراليا"]];
+function ccSplit(p){let d=String(p||"").replace(/[^\d+]/g,"");if(d.startsWith("+"))d=d.slice(1);else if(d.startsWith("00"))d=d.slice(2);else return null;
+  const m=CCODES.map(c=>c[0]).filter(c=>d.startsWith(c)).sort((a,b)=>b.length-a.length)[0];return m?{cc:m,num:d.slice(m.length)}:{cc:"",num:d}}
+function ccSelect(id,val,withAuto){const known=CCODES.some(c=>c[0]===val);return `<select id="${id}" data-chg="ccPick" style="min-width:0">${withAuto?"":""}${CCODES.map(c=>`<option value="${c[0]}" ${c[0]===val?"selected":""}>${c[1]} +${c[0]}</option>`).join("")}<option value="other" ${known?"":"selected"}>✏️ أخرى (إدخال يدوي)</option></select><input id="${id}_x" dir="ltr" inputmode="numeric" placeholder="مثال 357" value="${known?"":esc(val||"")}" style="margin-top:6px;${known?"display:none":""}">`}
+function ccVal(id){const s=$("#"+id);if(!s)return"";return (s.value==="other"?(($("#"+id+"_x")||{}).value||""):s.value).replace(/\D/g,"")}
+function waNum(p,cc0){let d=String(p||"").replace(/[^\d+]/g,"");if(!d)return"";if(d.startsWith("+"))return d.slice(1);if(d.startsWith("00"))return d.slice(2);const cc=String(cc0||set().waCode||"971").replace(/\D/g,"");if(d.startsWith("0"))d=d.slice(1);return cc0?cc+d:(d.length<=10?cc+d:d)}
 async function prevBlob(){const p=PREV;if(p.kind==="pdf"){if(!window.html2pdf)throw new Error("pdf");return await makePdfBlob(p.html,p.land)}
   const text="\ufeff"+p.rows.map(r=>r.map(x=>{const v=String(x??"");return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v}).join(",")).join("\n");return new Blob([text],{type:"text/csv"})}
 function sendDlg(how){const p=PREV;if(!p)return;const c={doc:p.kind==="csv"?"التقرير":"الملف",...(p.to||{})};const st=set();const wa=how==="wa";
   modal(`<h2>${wa?"🟢 إرسال واتساب":"✉️ إرسال إيميل"}</h2><p class="muted" style="margin-top:0" dir="ltr">${esc(p.filename)}</p><div class="grid2">
-   ${wa?`<label class="f full">رقم الواتساب<input id="sd_to" dir="ltr" value="${esc(c.phone||"")}" placeholder="+9715xxxxxxxx — أو سيبه فاضي واختار من واتساب"></label>
+   ${wa?(()=>{const sp=ccSplit(c.phone);const cc=sp?sp.cc||"other":String(st.waCode||"971");const num=sp?sp.num:String(c.phone||"").replace(/[^\d]/g,"").replace(/^0+/,"");return `<label class="f">مفتاح الدولة${ccSelect("sd_cc0",sp&&!sp.cc?"":cc)}</label>
+        <label class="f">رقم الواتساب<input id="sd_to" dir="ltr" inputmode="tel" value="${esc(num)}" placeholder="5xxxxxxxx — أو سيبه فاضي واختار من واتساب"><small>من غير الصفر اللي في الأول</small></label>`})()+`
         <label class="f full">الرسالة<textarea id="sd_msg" rows="6">${esc(fillTpl(st.waMsg||TPL_WA,c))}</textarea></label>`
        :`<label class="f full">إلى<input id="sd_to" dir="ltr" type="email" value="${esc(c.email||"")}" placeholder="customer@email.com"></label>
         <label class="f full">نسخة (CC)<input id="sd_cc" dir="ltr" value="${esc(st.mailCc||"")}"></label>
@@ -1588,7 +1601,7 @@ async function sendGo(how){const p=PREV;if(!p)return;const st=set();const to=($(
   const file=new File([blob],p.filename,{type:blob.type||"application/pdf"});
   if(canShareFiles()){try{if(how==="wa")await navigator.clipboard?.writeText(msg).catch(()=>{});await navigator.share({files:[file],title:how==="wa"?p.filename:($("#sd_sub")||{}).value,text:msg});toast("تم ✓");return}catch(e){if(e&&e.name==="AbortError")return}}
   try{await DL.save({filename:p.filename,data:blob})}catch{}
-  if(how==="wa"){const n=waNum(to);window.open(`https://wa.me/${n}?text=${encodeURIComponent(msg)}`,"_blank","noopener")}
+  if(how==="wa"){const sp=ccSplit(to);const n=sp?waNum("+"+sp.cc+sp.num):(to.trim()?waNum(to,ccVal("sd_cc0")||undefined):"");window.open(`https://wa.me/${n}?text=${encodeURIComponent(msg)}`,"_blank","noopener")}
   else{const sub=($("#sd_sub")||{}).value||"",cc=($("#sd_cc")||{}).value||"";
     if((st.mailVia||"gmail")==="gmail")window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&cc=${encodeURIComponent(cc)}&su=${encodeURIComponent(sub)}&body=${encodeURIComponent(msg)}`,"_blank","noopener");
     else location.href=`mailto:${encodeURIComponent(to)}?${cc?`cc=${encodeURIComponent(cc)}&`:""}subject=${encodeURIComponent(sub)}&body=${encodeURIComponent(msg)}`}
@@ -2040,6 +2053,7 @@ async function formSave(){
 }
 
 /* ================= events ================= */
+document.addEventListener("change",e=>{const t=e.target;if(t&&t.dataset&&t.dataset.chg==="ccPick"){const x=document.getElementById(t.id+"_x");if(x){x.style.display=t.value==="other"?"":"none";if(t.value==="other")x.focus()}}});
 const confirmBtn=(t,fn)=>{if(t.dataset.sure){fn()}else{t.dataset.sure=1;const o=t.innerHTML;t.textContent="اضغط مرة أخرى للتأكيد";setTimeout(()=>{if(t.isConnected){delete t.dataset.sure;t.innerHTML=o}},3500)}};
 document.addEventListener("click",async e=>{
   if(drawerOpen&&e.target.closest("aside.side a")){drawerOpen=false;setTimeout(render,0)}
@@ -2217,11 +2231,18 @@ document.addEventListener("click",async e=>{
     case "sendMail":sendDlg("mail");break;
     case "sendGo":sendGo(t.dataset.how);break;
     case "sendBack":{const p=PREV;if(p&&p.kind==="pdf"){const b=p.back,to=p.to;SENDTO=to;PREV={back:b};previewPdf(p.html,p.filename,p.land)}else if(p&&p.kind==="csv"){const b=p.back,to=p.to;SENDTO=to;PREV={back:b};previewCsv(p.rows,p.filename)}}break;
+    case "selRow":{e.stopPropagation();const k=t.dataset.k;const S2=SEL[k]||(SEL[k]=new Set());S2.has(id)?S2.delete(id):S2.add(id);render()}break;
+    case "selAll":{e.stopPropagation();const k=t.dataset.k,L=LAST[k];if(!L)break;const S2=SEL[k]||(SEL[k]=new Set());const can=r=>!L.o.select.can||L.o.select.can(r);const ids=L.rows.filter(can).map(r=>r.id);
+      if(S2.size===ids.length)S2.clear();else ids.forEach(i=>S2.add(i));render()}break;
+    case "selClear":{(SEL[t.dataset.k]||new Set()).clear();render()}break;
+    case "selDel":case "selDelAll":{const k=t.dataset.k,L=LAST[k];if(!L)break;const can=r=>!L.o.select.can||L.o.select.can(r);
+      const ids=a==="selDel"?[...(SEL[k]||[])]:L.rows.filter(can).map(r=>r.id);if(!ids.length)break;
+      confirmBtn(t,async()=>{busy(`جاري حذف ${ids.length}…`);try{for(let i=0;i<ids.length;i+=20)await Promise.all(ids.slice(i,i+20).map(x=>L.o.select.del(x)))}catch{}busy(null);(SEL[k]||new Set()).clear();toast(`تم حذف ${ids.length}`);render()})}break;
     case "pvSave":{try{const b=await (await fetch(window.__pv)).blob();await DL.save({filename:(t.dataset.n||"photo").replace(/[\\/:*?"<>|]+/g,"-")+".jpg",data:b,mimeType:"image/jpeg"})}catch{toast("تعذر التحميل")}}break;
     case "accPhotoDel":if(accDraft){accDraft.photo="";const box=$("#ac_av");if(box)box.innerHTML=avHTML(accDraft,"lg");t.remove()}break;
     case "accDel":confirmBtn(t,async()=>{const aid=accDraft.id,un=accDraft.username;closeModal();await del("accounts",aid);try{if(un)await DB.collection("avatars").doc(un).delete()}catch{}toast("تم حذف المستخدم")});break;
     case "rmLogo":{const s={...S.settings};delete s.logo;await saveSettings(s);toast("تمت إزالة اللوجو");break}
-    case "saveCo":{const s={...S.settings};["name","email","phone","address","trn","emirate","bankName","accountNo","iban","prefix","currency","workStart","workEnd","invoiceTerms","waNumber","waMsg","mailSubject","mailBody","mailCc","mailVia","waCode"].forEach(k=>{const el=$("#s_"+k);if(el)s[k]=el.value.trim()});["startNo","vatRate","dueDays","grace","otRate","otFriRate"].forEach(k=>{const el=$("#s_"+k);if(el)s[k]=+el.value||0});s.showCards=$("#s_showCards").checked;s.faceRequired=$("#s_faceReq").checked;
+    case "saveCo":{const s={...S.settings};["name","email","phone","address","trn","emirate","bankName","accountNo","iban","prefix","currency","workStart","workEnd","invoiceTerms","waNumber","waMsg","mailSubject","mailBody","mailCc","mailVia","waCode"].forEach(k=>{const el=$("#s_"+k);if(el)s[k]=el.value.trim()});["startNo","vatRate","dueDays","grace","otRate","otFriRate"].forEach(k=>{const el=$("#s_"+k);if(el)s[k]=+el.value||0});if($("#s_waCode"))s.waCode=ccVal("s_waCode")||"971";s.showCards=$("#s_showCards").checked;s.faceRequired=$("#s_faceReq").checked;
       const f=$("#s_logoFile").files[0];if(f){try{s.logo=await readLogo(f)}catch{return toast("تعذر قراءة صورة اللوجو")}}try{await saveSettings(s);toast("تم حفظ بيانات الشركة")}catch{}break}
   }
 });
