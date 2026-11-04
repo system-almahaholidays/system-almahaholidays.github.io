@@ -1,5 +1,5 @@
 /* Almaha Holidays app — service worker: app shell cache + /_blob/<id> files from Firestore via the page */
-const V="almaha-v8";
+const V="almaha-v10";
 const SHELL=["./","index.html","config.js","manifest.json","./icon-192.png","./icon-512.png"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(SHELL)).catch(()=>{}));self.skipWaiting()});
 self.addEventListener("activate",e=>{e.waitUntil((async()=>{for(const k of await caches.keys())if(k!==V&&k!=="almaha-blobs")await caches.delete(k);await self.clients.claim()})())});
@@ -23,3 +23,7 @@ self.addEventListener("fetch",e=>{
   const fresh=e.request.mode==="navigate"?fetch(u.href,{cache:"no-cache",credentials:"same-origin"}):fetch(new Request(e.request,{cache:"no-cache"}));
   e.respondWith(fresh.then(r=>{if(r.ok){const cp=r.clone();caches.open(V).then(c=>c.put(e.request,cp))}return r}).catch(()=>caches.match(e.request).then(r=>r||caches.match("index.html"))));
 });
+
+/* tapping a system notification opens the app on the right page */
+self.addEventListener("notificationclick",e=>{e.notification.close();const go=(e.notification.data&&e.notification.data.go)||"";
+  e.waitUntil((async()=>{const all=await self.clients.matchAll({type:"window",includeUncontrolled:true});for(const c of all){if("focus" in c){await c.focus();if(go)c.navigate?c.navigate(c.url.split("#")[0]+go).catch(()=>{}):0;return}}await self.clients.openWindow("./"+(go||""))})())});

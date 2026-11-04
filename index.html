@@ -147,6 +147,11 @@ td.n,th.n{text-align:left}
 .stats div{background:var(--surface-2);border-radius:10px;padding:10px 12px}
 .stats span{font-size:11.5px;color:var(--muted)}
 .stats b{display:block;font-size:16px;margin-top:3px;font-variant-numeric:tabular-nums;direction:ltr;text-align:right}
+.toast.err{background:#b3261e;color:#fff}.toast.ok{background:#1d7a45;color:#fff}
+.nbar{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:50%;transform:translate(-50%,-140%);width:min(420px,calc(100vw - 20px));z-index:200;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:16px;box-shadow:0 12px 34px rgba(0,0,0,.28);padding:11px 13px;display:flex;gap:11px;align-items:center;cursor:pointer;transition:transform .35s cubic-bezier(.2,.9,.3,1.2),opacity .3s;opacity:0}
+.nbar.on{transform:translate(-50%,0);opacity:1}.nbar .ni{width:42px;height:42px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--brand-soft);color:var(--brand);font-size:20px;overflow:hidden}.nbar .ni img{width:100%;height:100%;object-fit:cover}
+.nbar .nt{min-width:0;flex:1}.nbar b{display:block;font-size:13.5px}.nbar small{display:block;font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nbar .nh{font-size:11px;color:var(--muted);align-self:flex-start}
+.nbar.err .ni{background:#fbe4e2;color:#b3261e}
 .toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 18px;border-radius:9px;z-index:90;font-size:13px}
 .perm{display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center}
 .perm .seg button{padding:4px 10px;font-size:12px}
@@ -349,7 +354,29 @@ const addMonths=(m,n)=>{let[y,mm]=m.split("-").map(Number);mm+=n;while(mm<1){mm+
 const daysInMonth=ym=>{const[y,m]=ym.split("-").map(Number);return new Date(y,m,0).getDate()};
 const hm2min=t=>{if(!t)return null;const[h,m]=t.split(":").map(Number);return h*60+m};
 const norm=s=>String(s??"").toLowerCase().replace(/[ً-ْـ]/g,"").replace(/[أإآ]/g,"ا").replace(/ة/g,"ه").replace(/ى/g,"ي");
-function toast(msg){document.querySelectorAll(".toast").forEach(t=>t.remove());const t=document.createElement("div");t.className="toast";t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2800)}
+/* ---- sounds (generated, no files) + WhatsApp-style banners ---- */
+let ACX=null;const sndOn=()=>ls.get("erp-sound")!=="0";
+function acx(){if(!ACX){try{ACX=new (window.AudioContext||window.webkitAudioContext)()}catch{}}if(ACX&&ACX.state==="suspended")ACX.resume().catch(()=>{});return ACX}
+["pointerdown","keydown","touchstart"].forEach(ev=>document.addEventListener(ev,()=>acx(),{once:true,passive:true}));
+function tone(c,f,t0,dur,vol,type="sine"){const o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(f,t0);g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(vol,t0+.012);g.gain.exponentialRampToValueAtTime(.0001,t0+dur);o.connect(g).connect(c.destination);o.start(t0);o.stop(t0+dur+.05)}
+function sound(kind){if(!sndOn())return;const c=acx();if(!c)return;const n=c.currentTime+.01;
+  if(kind==="note"){tone(c,880,n,.22,.18);tone(c,1318.5,n+.12,.38,.16);tone(c,1760,n+.12,.3,.04,"triangle")}
+  else if(kind==="err"){tone(c,392,n,.18,.2,"triangle");tone(c,311.1,n+.16,.32,.2,"triangle")}
+  else if(kind==="ok"){tone(c,1046.5,n,.12,.1);tone(c,1568,n+.07,.18,.08)}
+  try{if(kind!=="ok"&&navigator.vibrate)navigator.vibrate(kind==="err"?[60,60,90]:[40,40,40])}catch{}}
+const ERR_RX=/تعذر|خطأ|غلط|لا يمكن|ليس لديك|مقدرتش|فشل|غير مطابق|خارج نطاق|❌|أكمل الاسم|غير صحيحة|لازم|مش موجود|اختر .* أولًا/;
+const OK_RX=/^تم |تمت |✓/;
+function toast(msg,kind){document.querySelectorAll(".toast").forEach(t=>t.remove());msg=String(msg||"");const k=kind||(ERR_RX.test(msg)?"err":OK_RX.test(msg)?"ok":"");
+  const t=document.createElement("div");t.className="toast "+k;t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),k==="err"?4200:2800);
+  if(k==="err")sound("err");else if(k==="ok")sound("ok")}
+let nbarT=null;
+function notify(title,text,{icon="🔔",img="",go="",kind="note",sys=true}={}){
+  document.querySelectorAll(".nbar").forEach(x=>x.remove());const b=document.createElement("div");b.className="nbar "+(kind==="err"?"err":"");
+  b.innerHTML=`<div class="ni">${img?`<img src="${img}" alt="">`:icon}</div><div class="nt"><b></b><small></small></div><span class="nh">الآن</span>`;b.querySelector("b").textContent=title;b.querySelector("small").textContent=text||"";
+  b.onclick=()=>{b.classList.remove("on");setTimeout(()=>b.remove(),300);if(go)location.hash=go};document.body.appendChild(b);requestAnimationFrame(()=>b.classList.add("on"));
+  clearTimeout(nbarT);nbarT=setTimeout(()=>{b.classList.remove("on");setTimeout(()=>b.remove(),400)},6000);sound(kind);
+  if(sys&&document.hidden&&"Notification" in window&&Notification.permission==="granted"){navigator.serviceWorker&&navigator.serviceWorker.ready.then(r=>r.showNotification(title,{body:text||"",icon:"./icon-192.png",badge:"./icon-192.png",tag:"almaha-"+Date.now(),data:{go}})).catch(()=>{try{new Notification(title,{body:text||"",icon:"./icon-192.png"})}catch{}})}}
+async function askNotif(){if(!("Notification" in window))return toast("الجهاز ده مش بيدعم إشعارات النظام");const p=await Notification.requestPermission();toast(p==="granted"?"تم تفعيل إشعارات الجهاز ✓":"الإشعارات مقفولة — فعّلها من إعدادات المتصفح/الموبايل للموقع ده");render()}
 const IC={home:"M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z",check:"M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9",doc:"M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 13h8M8 17h5",users:"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8",receipt:"M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2zM9 8h6M9 12h6",truck:"M2 6h12v10H2zM14 9h4l3 3v4h-7M6 19a1.6 1.6 0 1 0 0-.1M17 19a1.6 1.6 0 1 0 0-.1",wallet:"M3 7h18v12H3zM3 7l3-4h12l3 4M16 13h2",id:"M3 5h18v14H3zM8 12a2 2 0 1 0 0-.1M5 16.5c.6-1.4 1.7-2 3-2s2.4.6 3 2M13.5 10h5M13.5 14h4",clock:"M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2",cash:"M2 6h20v12H2zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 9.5v.01M18 14.5v.01",percent:"M19 5L5 19M7 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM17 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z",lock:"M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4",bell:"M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0",gear:"M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4.9a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.5a7 7 0 0 0-2 1.2l-2.4-.9-2 3.4 2 1.6a7 7 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-.9a7 7 0 0 0 2 1.2L10 21h4l.5-2.5a7 7 0 0 0 2-1.2l2.4.9 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z",search:"M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-4.3-4.3",print:"M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z",dl:"M12 3v12M7 10l5 5 5-5M4 21h16",plus:"M12 5v14M5 12h14",link:"M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1",plane:"M2 16l20-6L2 4l3 6-3 6zM5 10h8",face:"M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M9 10v1M15 10v1M12 10v3h-1M9 16c1.6 1.2 4.4 1.2 6 0",burger:"M3 6h18M3 12h18M3 18h18",kiosk:"M5 3h14v14H5zM9 21h6M12 17v4",out:"M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"};
 const ic=(k,c="i")=>`<svg class="${c}" viewBox="0 0 24 24" aria-hidden="true"><path d="${IC[k]}"/></svg>`;
 const COUNTRIES=["الإمارات","السعودية","مصر","الأردن","الكويت","قطر","البحرين","عُمان","اليمن","العراق","سوريا","لبنان","فلسطين","السودان","المغرب","الجزائر","تونس","ليبيا","الهند","باكستان","بنغلاديش","الفلبين","إيران","تركيا","المملكة المتحدة","الولايات المتحدة","روسيا","تايلاند","ماليزيا","إندونيسيا","سنغافورة","المالديف","سريلانكا","جورجيا","أذربيجان","أرمينيا","أوزبكستان","كازاخستان","النمسا","سويسرا","ألمانيا","فرنسا","إيطاليا","إسبانيا","هولندا","التشيك","المجر","اليونان","البوسنة","الصين","اليابان","كوريا الجنوبية","فيتنام","كينيا","تنزانيا","زنجبار","موريشيوس","جنوب أفريقيا","البرازيل","كندا","أستراليا"];
@@ -396,8 +423,13 @@ function actUnread(){return S.activity.filter(a=>a.byId!==(ME&&ME.id)&&Date.pars
 function actWatch(){ // live alert for the owner when someone else does something
   const ids=new Set(S.activity.map(a=>a.id));if(actKnown===null||!ME||!ME.admin){actKnown=ids;return}
   const fresh=S.activity.filter(a=>!actKnown.has(a.id)&&a.byId!==ME.id);actKnown=ids;
-  fresh.slice(-3).forEach(a=>toast(`🔔 ${a.by}: ${a.title} — ${a.text}`));
+  const ic2={attendance:"🕘",invoices:"🧾",customers:"👤",vouchers:"🎫",travelers:"🛂",bills:"📦",expenses:"💸",tasks:"✅",ofiles:"📎"};
+  fresh.slice(-3).forEach((a,i)=>setTimeout(()=>{const acc=S.accounts.find(x=>x.id===a.byId);notify(`${a.by}: ${a.title}`,a.text,{icon:ic2[a.col]||"🔔",img:a.photo||(acc&&acc.photo)||"",go:"#activity"})},i*1800));
 }
+let taskKnown=null;
+function taskWatch(){if(!ME){taskKnown=null;return}const mine=S.tasks.filter(t=>t.assignee===ME.id&&t.status!=="done");const ids=new Set(mine.map(t=>t.id));
+  if(taskKnown===null){taskKnown=ids;return}const fresh=mine.filter(t=>!taskKnown.has(t.id)&&t.updatedBy!==ME.name);taskKnown=ids;
+  fresh.slice(-2).forEach(t=>notify("مهمة جديدة ليك ✅",`${t.title||""}${t.due?` · ${dAr(t.due)}`:""}`,{icon:"✅",go:"#tasks"}))}
 function actWa(a){const st=set();const ph=(st.waNumber||st.phone||"").replace(/\D/g,"");return `https://wa.me/${ph}?text=${encodeURIComponent(`🔔 ${st.name||"Al Maha Holidays"}\n${a.title}\n${a.text}\nبواسطة: ${a.by}\n${new Date(a.at).toLocaleString("ar-EG",{dateStyle:"medium",timeStyle:"short"})}`)}`}
 let actF="all",actDay="";
 function vActivity(){
@@ -522,7 +554,7 @@ async function boot(){
     const done=k=>{if(pending.delete(k)&&!pending.size)S.loaded=true;restoreSess();render()};
     unsub.push(db.doc("settings/company").onSnapshot(s=>{S.settings=s.exists?{...s.data()}:{};done("settings")},()=>done("settings")));
     unsub.push(db.doc("settings/background").onSnapshot(s=>{S.bg=s.exists?(s.data().img||""):"";render()},()=>{}));
-    COLS.forEach(c=>unsub.push(db.collection(c).onSnapshot(q=>{S[c]=q.docs.map(d=>({...d.data(),id:d.id}));if(c==="activity")actWatch();done(c)},()=>done(c))));
+    COLS.forEach(c=>unsub.push(db.collection(c).onSnapshot(q=>{S[c]=q.docs.map(d=>({...d.data(),id:d.id}));if(c==="activity")actWatch();if(c==="tasks")taskWatch();done(c)},()=>done(c))));
   });
 }
 /* ---- downloads: save via the browser ---- */
@@ -861,7 +893,7 @@ function renderInner(){
    <div class="topbar"><button class="ghost menu-btn" data-act="drawer" aria-label="القائمة" style="padding:6px">${ic("burger")}</button><div class="gsearch">${ic("search")}<input id="gq" value="${esc(GQ)}" placeholder="ابحث عن عميل، فاتورة، مورد، موظف…" aria-label="بحث شامل" autocomplete="off">${GQ.trim()?gResults():""}</div>
    ${ME.admin?`<a href="#activity" class="ghost" aria-label="التنبيهات" style="position:relative;display:inline-flex;padding:8px;margin-inline-start:auto;color:var(--fg)">${ic("bell")}${actUnread()?`<span style="position:absolute;top:0;inset-inline-end:0;background:var(--brand,#f39c12);color:#fff;border-radius:9px;font-size:10.5px;min-width:17px;height:17px;display:grid;place-items:center;padding:0 4px">${actUnread()>99?"99+":actUnread()}</span>`:""}</a>`:""}
    <div class="me"><div class="who"><b>${esc(ME.name)}</b><small>${esc(role)}</small></div><button class="ghost" data-act="menu" aria-label="قائمة الحساب" style="padding:0">${avHTML(ME)}</button>
-   ${menuOpen?`<div class="menu">${ME.id!=="owner"?`<button data-act="chpw">تغيير كلمة المرور</button>`:""}<button data-act="install">إضافة للشاشة الرئيسية</button><button data-act="logout">${ic("out")} تسجيل الخروج</button></div>`:""}</div></div>
+   ${menuOpen?`<div class="menu">${ME.id!=="owner"?`<button data-act="chpw">تغيير كلمة المرور</button>`:""}<button data-act="install">إضافة للشاشة الرئيسية</button><button data-act="sndToggle">${sndOn()?"🔔 الأصوات: شغالة":"🔕 الأصوات: مقفولة"}</button>${"Notification" in window&&Notification.permission!=="granted"?`<button data-act="notifOn">📲 تفعيل إشعارات الجهاز</button>`:""}<button data-act="logout">${ic("out")} تسجيل الخروج</button></div>`:""}</div></div>
    <main>${top}${fn()}</main></div></div>${tabbar}`;
   if(aid){const el=document.getElementById(aid);if(el){el.focus();if(pos!=null)try{el.setSelectionRange(pos,pos)}catch{}}}
   refreshOpenDetail();
@@ -1377,7 +1409,7 @@ function docDetail(id){
   const key=decodeURIComponent(id);const g=docGroups().find(x=>x.key===key)||{key,id,no:NEWNO[key]||key,pax:[],docs:[],trip:null,name:"",phone:"",dest:"",tr:"",ret:""};
   const ed=canW("docs");OPEN={type:"doc",id,sig:JSON.stringify([g.trip,g.pax,g.docs])};const up=ASSETS&&ed;
   const pax=[...g.pax].sort((a,b)=>(a.at||"").localeCompare(b.at||""));
-  const paxRows=pax.map((p,i)=>{const w=expWarn(p,g.tr);return `<tr><td class="muted">${i+1}</td><td><b>${esc([p.givenNames,p.surname].filter(Boolean).join(" ")||"—")}</b><div class="sub">${esc(p.surname?`Surname: ${p.surname}`:"")}</div></td><td>${esc(p.nationality||"")}</td><td class="n">${esc(p.dob?dEn(p.dob):"")}</td><td class="n"><b>${esc(p.passportNo||"")}</b></td><td class="n">${esc(p.expiry?dEn(p.expiry):"")}${w?`<div><span class="pill p-bad">${w}</span></div>`:""}</td><td>${p.ai?`<span class="pill ${p.checked?"p-ok":"p-warn"}">${p.checked?"تمت المراجعة":"راجِع البيانات"}</span>`:`<span class="pill p-mut">يدوي</span>`}</td><td><div class="row-actions">${p.asset?`<a class="ghost sm" style="text-decoration:none;color:var(--brand);padding:4px 8px" href="/_blob/${esc(p.asset.assetId)}" target="_blank" rel="noopener">الصورة</a>`:""}${ed?`<button class="ghost sm" data-act="paxEdit" data-id="${p.id}">تعديل</button><button class="ghost sm danger" data-act="paxDel" data-id="${p.id}">حذف</button>`:""}</div></td></tr>`}).join("");
+  const paxRows=pax.map((p,i)=>{const w=expWarn(p,g.tr);return `<tr><td class="muted">${i+1}</td><td><b>${esc([p.givenNames,p.surname].filter(Boolean).join(" ")||"—")}</b><div class="sub">${esc(p.surname?`Surname: ${p.surname}`:"")}</div></td><td>${esc(p.nationality||"")}</td><td class="n">${esc(p.dob?dEn(p.dob):"")}</td><td class="n"><b>${esc(p.passportNo||"")}</b></td><td class="n">${esc(p.expiry?dEn(p.expiry):"")}${w?`<div><span class="pill p-bad">${w}</span></div>`:""}</td><td>${p.ai?`<span class="pill ${p.checked?"p-ok":"p-warn"}">${p.checked?"تمت المراجعة":"راجِع البيانات"}</span>`:`<span class="pill p-mut">يدوي</span>`}</td><td><div class="row-actions">${p.asset?`<button class="ghost sm" data-act="paxImg" data-id="${p.id}">الصورة</button>`:""}${p.asset&&ed?`<button class="ghost sm" data-act="paxRead" data-id="${p.id}" data-g="${esc(id)}">${p.passportNo?"إعادة القراءة":"قراءة البيانات"}</button>`:""}${ed?`<button class="ghost sm" data-act="paxEdit" data-id="${p.id}">تعديل</button><button class="ghost sm danger" data-act="paxDel" data-id="${p.id}">حذف</button>`:""}</div></td></tr>`}).join("");
   const docRows=g.docs.map(f=>`<tr><td><span class="pill p-gold">${esc(f.kind)}</span></td><td><b>${esc(f.name)}</b>${f.note?`<div class="sub">${esc(f.note)}</div>`:""}</td><td class="muted">${fSize(f.size)}</td><td class="muted">${esc(f.by||"")} · ${dAr((f.at||"").slice(0,10))}</td><td><div class="row-actions"><a class="ghost sm" style="text-decoration:none;color:var(--brand);padding:4px 8px" href="${fileUrl(f)}" target="_blank" rel="noopener">عرض</a><button class="ghost sm" data-act="ofDl" data-id="${f.id}">${ic("dl")}تحميل</button>${up?`<button class="ghost sm danger" data-act="ofDel" data-id="${f.id}">حذف</button>`:""}</div></td></tr>`).join("");
   modal(`<div class="head" style="margin-bottom:12px"><div><h2 style="margin:0">جوازات وحجوزات <span class="n">${esc(g.no)}</span></h2><p>${esc([g.name,g.dest,g.tr&&`السفر ${dAr(g.tr)}`].filter(Boolean).join(" · ")||"أكمل بيانات المسافر")}</p></div>
   <div class="tools">${pax.length?`<button class="primary" data-act="paxView" data-id="${id}">${ic("doc")}عرض الجوازات PDF</button><button data-act="docZip" data-id="${id}">${ic("dl")}تحميل كل حاجة (ZIP)</button>`:""}${g.ord&&can("orders")?`<button data-act="orderOpen" data-id="${g.ord.id}">ملف الفاتورة</button>`:""}<button data-act="close">إغلاق</button></div></div>
@@ -1429,19 +1461,21 @@ function parseMRZ(text){
 let OCRW=null;
 async function ocrWorker(prog){if(OCRW)return OCRW;
   if(!window.Tesseract){prog&&prog("أول مرة: تحميل نظام قراءة الجوازات (حوالي 10 ميجا)…");await loadScript("https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js")}
-  const w=await Tesseract.createWorker("eng",1);await w.setParameters({tessedit_char_whitelist:"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<",tessedit_pageseg_mode:"6",preserve_interword_spaces:"0"});OCRW=w;return w}
-async function imgCanvas(file,rot,part){const im=await fileImage(file);let W=im.width,H=im.height;const sw=rot%180?H:W,sh=rot%180?W:H;
+  const w=await Tesseract.createWorker("eng",1,{logger:m=>{if(prog&&m&&m.status){const pc=m.progress?` ${Math.round(m.progress*100)}%`:"";prog(({"loading tesseract core":"تحميل نظام القراءة","loading language traineddata":"تحميل ملفات القراءة","initializing api":"تجهيز","recognizing text":"قراءة الجواز"})[m.status]?(({"loading tesseract core":"تحميل نظام القراءة","loading language traineddata":"تحميل ملفات القراءة","initializing api":"تجهيز","recognizing text":"قراءة الجواز"})[m.status]+pc+"…"):null)}}});await w.setParameters({tessedit_char_whitelist:"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<",tessedit_pageseg_mode:"6",preserve_interword_spaces:"0"});OCRW=w;return w}
+async function imgCanvas(file,rot,part,bin=1){const im=await fileImage(file);let W=im.width,H=im.height;const sw=rot%180?H:W,sh=rot%180?W:H;
   const c=document.createElement("canvas");const k=Math.min(2.2,1800/sw);c.width=Math.round(sw*k);c.height=Math.round(sh*k);const g=c.getContext("2d");g.translate(c.width/2,c.height/2);g.rotate(rot*Math.PI/180);g.drawImage(im,-W*k/2,-H*k/2,W*k,H*k);
   let out=c;if(part){const y=Math.round(c.height*(1-part));out=document.createElement("canvas");out.width=c.width;out.height=c.height-y;out.getContext("2d").drawImage(c,0,y,c.width,out.height,0,0,c.width,out.height)}
-  const x=out.getContext("2d"),d=x.getImageData(0,0,out.width,out.height),p=d.data;for(let j=0;j<p.length;j+=4){let v=.3*p[j]+.59*p[j+1]+.11*p[j+2];v=v<110?0:v>170?255:(v-110)*4.25;p[j]=p[j+1]=p[j+2]=v}x.putImageData(d,0,0);return out}
-async function readPassportMRZ(file,prog){const w=await ocrWorker(prog);let best=null;
-  for(const [rot,part] of [[0,.4],[0,0],[90,.4],[270,.4],[180,.4]]){
-    const c=await imgCanvas(file,rot,part);const {data:{text}}=await w.recognize(c);const r=parseMRZ(text);
+  const x=out.getContext("2d"),d=x.getImageData(0,0,out.width,out.height),p=d.data;for(let j=0;j<p.length;j+=4){let v=.3*p[j]+.59*p[j+1]+.11*p[j+2];if(bin)v=v<110?0:v>170?255:(v-110)*4.25;p[j]=p[j+1]=p[j+2]=v}x.putImageData(d,0,0);return out}
+function mrzFail(){modal(`<h2>مقدرتش أقرا الجواز</h2><p class="muted">اتأكد إن السطرين اللي تحت صفحة الجواز (اللي فيهم <span dir="ltr">P&lt;…&lt;&lt;</span>) باينين كاملين، والصورة مستقيمة ومن غير انعكاس فلاش.</p><details><summary class="muted" style="cursor:pointer">اللي اتقرا (ابعته للدعم لو المشكلة مستمرة)</summary><pre dir="ltr" style="white-space:pre-wrap;font-size:11px;background:var(--surface-2);padding:8px;border-radius:8px">${esc(MRZLAST||"(لا شيء)")}</pre></details><div class="foot"><button data-act="close">حسنًا</button></div>`)}
+let MRZLAST="";
+async function readPassportMRZ(file,prog){const w=await ocrWorker(prog);let best=null;MRZLAST="";
+  for(const [rot,part,bin] of [[0,.4,1],[0,.4,0],[0,0,0],[90,.4,1],[270,.4,1],[180,.4,1]]){
+    const c=await imgCanvas(file,rot,part,bin);const {data:{text}}=await w.recognize(c);MRZLAST+=`[${rot}°] `+String(text||"").trim().split("\n").slice(-3).join(" | ")+"\n";const r=parseMRZ(text);
     if(r&&(!best||r.score>best.score))best=r;if(best&&best.score>=2)break}
   return best&&best.score>=1?best:null}
 
 async function paxScan(id){
-  const fl=[...($("#px_files")&&$("#px_files").files||[])];if(!fl.length)return toast("اختر صور الجوازات أولًا");const no=groupNo(id);const prog=t=>{const e=$("#px_prog");if(e)e.textContent=t};let ok=0,bad=0;
+  const fl=[...($("#px_files")&&$("#px_files").files||[])];if(!fl.length)return toast("اختر صور الجوازات أولًا");const no=groupNo(id);const prog=t=>{if(!t)return;const e=$("#px_prog");if(e)e.textContent=t};let ok=0,bad=0;const failed=[];
   for(let i=0;i<fl.length;i++){const f=fl[i];const ext=(f.name.split(".").pop()||"").toLowerCase();const type=MIME[ext]||f.type;if(!/^image\//.test(type)){bad++;continue}
     prog(`(${i+1}/${fl.length}) جاري رفع ${f.name}…`);let asset=null;
     try{const r=await ASSETS.upload(f,{type});asset={assetId:r.id,name:f.name}}catch(e){bad++;toast(`تعذر رفع ${f.name}`);continue}
@@ -1453,10 +1487,10 @@ async function paxScan(id){
       catch(e){const c=e&&e.code;if(c==="not_granted"||c==="sampling_disabled"||c==="images_unavailable"){SAMPLE=null;toast("قراءة الجواز بالذكاء الاصطناعي غير متاحة، كمّل يدويًا")}else toast(`تعذرت قراءة ${f.name}، أكمل بياناته يدويًا`)}}
     else{prog(`(${i+1}/${fl.length}) جاري قراءة السطرين اللي تحت الجواز في ${f.name}…`);
       try{const m=await readPassportMRZ(f,prog);if(m){ai=true;d={surname:m.surname,givenNames:m.givenNames,nationality:m.nationality,dob:m.dob,passportNo:m.passportNo,expiry:m.expiry,sex:m.sex,ocr:true,mrzOk:m.score===3};if(m.score<3)toast(`${f.name}: اتقرا بس فيه حروف مش متأكد منها — راجعه`)}
-        else toast(`${f.name}: مقدرتش أقرا السطرين اللي تحت الجواز. صوّره أوضح أو أدخل البيانات يدويًا`)}
-      catch(e){toast(`تعذرت قراءة ${f.name}، أكمل بياناته يدويًا`)}}
+        else {toast(`${f.name}: مقدرتش أقرا السطرين اللي تحت الجواز`);failed.push(f.name)}}
+      catch(e){toast(`تعذرت قراءة ${f.name}: ${String((e&&e.message)||e).slice(0,80)}`);failed.push(f.name)}}
     try{await put("travelers",uid(),{orderNo:no,...d,ai,checked:false,asset,by:ME.name,at:new Date().toISOString()});ok++}catch{bad++}}
-  prog("");toast(`تم حفظ ${ok} جواز${bad?` · تعذر ${bad}`:""}`);setTimeout(()=>ok?paxView(id):docDetail(id),80);
+  {const e=$("#px_prog");if(e)e.textContent=""}toast(`تم حفظ ${ok} جواز${bad?` · تعذر ${bad}`:""}`);setTimeout(()=>{ok?paxView(id):docDetail(id);if(failed.length&&!SAMPLE)setTimeout(mrzFail,150)},80);
 }
 function paxForm(pid,gid){
   const p=pid?(S.travelers||[]).find(x=>x.id===pid):{};const back=OPEN?{...OPEN}:null;OPEN=null;
@@ -1475,7 +1509,7 @@ function paxPdfHTML(id){
   const k=decodeURIComponent(id);const g=docGroups().find(x=>x.key===k)||{no:groupNo(id)};const st=set();const P=paxRowsFor(id);
   const th="background:#fbe9d2;color:#8a5208;font-size:9px;letter-spacing:1px;text-transform:uppercase;text-align:left;padding:2.4mm 2.4mm;font-weight:700;white-space:nowrap";
   const td="padding:2.6mm 2.4mm;border-bottom:1px solid #f1e6da;font-size:11.5px;vertical-align:top";
-  const imgs=P.filter(p=>p.asset);
+  const imgs=[]; /* passport copies are kept in the system (view / download), not printed in the list */
   return `<div style="width:297mm;min-height:209mm;background:#fff;color:#2e2a26;font-family:Carlito,Calibri,Arial,sans-serif;direction:ltr;text-align:left;display:flex;flex-direction:column">
   <div style="background:#e3922a;color:#fff;padding:8mm 12mm;display:flex;justify-content:space-between;align-items:center;gap:8mm">
    <div style="display:flex;gap:5mm;align-items:center">${st.logo?`<img src="${st.logo}" style="width:18mm;height:18mm;object-fit:contain;background:#fff;border-radius:2mm;padding:1mm">`:""}<div><div style="font-size:18px;font-weight:700">${esc(st.name||"")}</div><div style="font-size:10.5px;opacity:.95">${esc([st.email,st.phone].filter(Boolean).join(" · "))}</div></div></div>
@@ -2111,6 +2145,16 @@ document.addEventListener("click",async e=>{
       else{try{busy("جاري تحديد موقعك…");const p=await getPos();busy(null);lat=p.coords.latitude;lng=p.coords.longitude;if(p.coords.accuracy>80)toast(`دقة الموقع ${Math.round(p.coords.accuracy)} م — لو تقدر، جرّب جنب الشباك`)}catch(err){busy(null);return toast(err&&err.code===1?"اسمح للتطبيق باستخدام الموقع من إعدادات الموبايل":"تعذر تحديد الموقع، فعّل الـ GPS")}}
       const sites=[...(S.settings.sites||[]),{name,lat:+lat.toFixed(6),lng:+lng.toFixed(6),r}];try{await DB.doc("settings/company").set({...S.settings,sites});toast("تمت إضافة الموقع")}catch{}}break;
     case "siteDel":{const sites=(S.settings.sites||[]).filter((_,i)=>i!==+t.dataset.i);try{await DB.doc("settings/company").set({...S.settings,sites});toast("تم حذف الموقع")}catch{}}break;
+    case "paxImg":{const p=(S.travelers||[]).find(x=>x.id===id);if(p&&p.asset)photoView("/_blob/"+p.asset.assetId,[p.givenNames,p.surname].filter(Boolean).join(" ")||"صورة الجواز")}break;
+    case "paxRead":{const p=(S.travelers||[]).find(x=>x.id===id);if(!p||!p.asset)break;const gid=t.dataset.g;
+      try{busy("جاري تجهيز الصورة…");const b=await getBlob(p.asset.assetId);if(!b)throw new Error("الصورة مش موجودة");const f=new File([b],p.asset.name||"passport.jpg",{type:b.type||"image/jpeg"});
+        const m=await readPassportMRZ(f,txt=>{if(txt)busy(txt)});busy(null);
+        if(!m){mrzFail();break}
+        await put("travelers",p.id,{...p,surname:m.surname,givenNames:m.givenNames,nationality:m.nationality,dob:m.dob,passportNo:m.passportNo,expiry:m.expiry,sex:m.sex,ai:true,ocr:true,mrzOk:m.score===3,checked:false});
+        toast(m.score===3?"تمت قراءة الجواز ✓":"اتقرا، بس راجع البيانات");setTimeout(()=>paxView(gid),80)}
+      catch(e){busy(null);toast("تعذرت القراءة: "+String((e&&e.message)||e).slice(0,80))}}break;
+    case "sndToggle":ls.set("erp-sound",sndOn()?"0":"1");if(sndOn())sound("note");render();break;
+    case "notifOn":askNotif();break;
     case "pvSave":{try{const b=await (await fetch(window.__pv)).blob();await DL.save({filename:(t.dataset.n||"photo").replace(/[\\/:*?"<>|]+/g,"-")+".jpg",data:b,mimeType:"image/jpeg"})}catch{toast("تعذر التحميل")}}break;
     case "accPhotoDel":if(accDraft){accDraft.photo="";const box=$("#ac_av");if(box)box.innerHTML=avHTML(accDraft,"lg");t.remove()}break;
     case "accDel":confirmBtn(t,async()=>{const aid=accDraft.id,un=accDraft.username;closeModal();await del("accounts",aid);try{if(un)await DB.collection("avatars").doc(un).delete()}catch{}toast("تم حذف المستخدم")});break;
