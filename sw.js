@@ -1,5 +1,5 @@
 /* Almaha Holidays app — service worker: app shell cache + /_blob/<id> files from Firestore via the page */
-const V="almaha-v5";
+const V="almaha-v6";
 const SHELL=["./","index.html","config.js","manifest.json","./icon-192.png","./icon-512.png"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(SHELL)).catch(()=>{}));self.skipWaiting()});
 self.addEventListener("activate",e=>{e.waitUntil((async()=>{for(const k of await caches.keys())if(k!==V&&k!=="almaha-blobs")await caches.delete(k);await self.clients.claim()})())});
