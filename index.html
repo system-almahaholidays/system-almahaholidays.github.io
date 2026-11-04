@@ -372,10 +372,10 @@ function toast(msg,kind){document.querySelectorAll(".toast").forEach(t=>t.remove
 let nbarT=null;
 function notify(title,text,{icon="🔔",img="",go="",kind="note",sys=true}={}){
   document.querySelectorAll(".nbar").forEach(x=>x.remove());const b=document.createElement("div");b.className="nbar "+(kind==="err"?"err":"");
-  b.innerHTML=`<div class="ni">${img?`<img src="${img}" alt="">`:icon}</div><div class="nt"><b></b><small></small></div><span class="nh">الآن</span>`;b.querySelector("b").textContent=title;b.querySelector("small").textContent=text||"";
+  const lg=(S.settings&&S.settings.logo)||"./icon-192.png";b.innerHTML=`<div class="ni" style="position:relative">${img?`<img src="${img}" alt="">`:`<img src="${lg}" alt="" style="background:#fff;object-fit:contain;padding:3px">`}${img||icon==="🔔"?"":`<span style="position:absolute;bottom:-2px;inset-inline-end:-2px;font-size:14px;line-height:1">${icon}</span>`}</div><div class="nt"><b></b><small></small></div><span class="nh">الآن</span>`;b.querySelector("b").textContent=title;b.querySelector("small").textContent=text||"";
   b.onclick=()=>{b.classList.remove("on");setTimeout(()=>b.remove(),300);if(go)location.hash=go};document.body.appendChild(b);requestAnimationFrame(()=>b.classList.add("on"));
   clearTimeout(nbarT);nbarT=setTimeout(()=>{b.classList.remove("on");setTimeout(()=>b.remove(),400)},6000);sound(kind);
-  if(sys&&document.hidden&&"Notification" in window&&Notification.permission==="granted"){navigator.serviceWorker&&navigator.serviceWorker.ready.then(r=>r.showNotification(title,{body:text||"",icon:"./icon-192.png",badge:"./icon-192.png",tag:"almaha-"+Date.now(),data:{go}})).catch(()=>{try{new Notification(title,{body:text||"",icon:"./icon-192.png"})}catch{}})}}
+  if(sys&&document.hidden&&"Notification" in window&&Notification.permission==="granted"){navigator.serviceWorker&&navigator.serviceWorker.ready.then(r=>r.showNotification(title,{body:text||"",icon:"./icon-192.png",badge:"./badge-96.png",tag:"almaha-"+Date.now(),data:{go}})).catch(()=>{try{new Notification(title,{body:text||"",icon:"./icon-192.png"})}catch{}})}}
 async function askNotif(){if(!("Notification" in window))return toast("الجهاز ده مش بيدعم إشعارات النظام");const p=await Notification.requestPermission();toast(p==="granted"?"تم تفعيل إشعارات الجهاز ✓":"الإشعارات مقفولة — فعّلها من إعدادات المتصفح/الموبايل للموقع ده");render()}
 const IC={home:"M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z",check:"M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9",doc:"M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 13h8M8 17h5",users:"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8",receipt:"M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2zM9 8h6M9 12h6",truck:"M2 6h12v10H2zM14 9h4l3 3v4h-7M6 19a1.6 1.6 0 1 0 0-.1M17 19a1.6 1.6 0 1 0 0-.1",wallet:"M3 7h18v12H3zM3 7l3-4h12l3 4M16 13h2",id:"M3 5h18v14H3zM8 12a2 2 0 1 0 0-.1M5 16.5c.6-1.4 1.7-2 3-2s2.4.6 3 2M13.5 10h5M13.5 14h4",clock:"M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2",cash:"M2 6h20v12H2zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 9.5v.01M18 14.5v.01",percent:"M19 5L5 19M7 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM17 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z",lock:"M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4",bell:"M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0",gear:"M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4.9a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.5a7 7 0 0 0-2 1.2l-2.4-.9-2 3.4 2 1.6a7 7 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-.9a7 7 0 0 0 2 1.2L10 21h4l.5-2.5a7 7 0 0 0 2-1.2l2.4.9 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z",search:"M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-4.3-4.3",print:"M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z",dl:"M12 3v12M7 10l5 5 5-5M4 21h16",plus:"M12 5v14M5 12h14",link:"M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1",plane:"M2 16l20-6L2 4l3 6-3 6zM5 10h8",face:"M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M9 10v1M15 10v1M12 10v3h-1M9 16c1.6 1.2 4.4 1.2 6 0",burger:"M3 6h18M3 12h18M3 18h18",kiosk:"M5 3h14v14H5zM9 21h6M12 17v4",out:"M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"};
 const ic=(k,c="i")=>`<svg class="${c}" viewBox="0 0 24 24" aria-hidden="true"><path d="${IC[k]}"/></svg>`;
@@ -1066,7 +1066,7 @@ function custPdf(id){const c=S.customers.find(x=>x.id===id);const s=custStats(id
   if(pays.length)html+=`<h3 style="margin:5mm 0 2mm">الدفعات</h3>`+repTable([{h:"التاريخ"},{h:"الفاتورة"},{h:"الطريقة"},{h:"المبلغ",n:1}],pays,null);
   if(can("bills")){const bl=S.bills.filter(b=>b.customerId===id);if(bl.length)html+=`<h3 style="margin:5mm 0 2mm">تكاليف الموردين</h3>`+repTable([{h:"المورد"},{h:"البيان"},{h:"الاستحقاق"},{h:"التكلفة",n:1},{h:"المتبقي للمورد",n:1}],bl.map(b=>{const k=billCalc(b);return[supName(b.supplierId),b.desc||"",dAr(b.dueDate),k.net,k.due]}),null)}
   const sub=[c.nationality&&`الجنسية: ${c.nationality}`,c.destination&&`الوجهة: ${c.destination}`,c.travelDate&&`السفر: ${dAr(c.travelDate)}`,c.phone].filter(Boolean).join(" · ");
-  savePdf(reportHTML(`كشف حساب: ${c.name}`,sub,html,false),`customer-${(c.name||"").replace(/\s+/g,"_")}.pdf`,false)}
+  SENDTO=ctxC(c);savePdf(reportHTML(`كشف حساب: ${c.name}`,sub,html,false),`customer-${(c.name||"").replace(/\s+/g,"_")}.pdf`,false)}
 
 /* ================= suppliers & bills ================= */
 const SUPTYPES=["طيران","فنادق","نقل ومواصلات","رحلات وجولات","تأشيرات","تأمين سفر","أخرى"];
@@ -1200,7 +1200,7 @@ function slipPdf(i){const doc=S.payroll.find(p=>p.id===payMonth);const l=doc.lin
   const html=`<div class="kv"><div><span>الموظف</span><b style="direction:rtl">${esc(l.name)}</b></div><div><span>الوظيفة</span><b style="direction:rtl">${esc(e.job||"")}</b></div><div><span>الشهر</span><b style="direction:rtl">${mLabel(payMonth)}</b></div><div><span>صافي الراتب</span><b>${money(l.net)}</b></div></div>
    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6mm"><div><h3>الاستحقاقات</h3>${T([["الراتب الأساسي",l.basic],["البدلات",l.allow],[`أوفر تايم (${l.otH||0} ساعة)`,+l.otPay||0],["مكافأة",+l.bonus||0]])}</div><div><h3>الاستقطاعات</h3>${T([[`غياب وتأخير (${l.absent} يوم)${l.cnt?` — بدون إذن ${l.cnt.absent}، بإذن ${l.cnt.excused}، بدون راتب ${l.cnt.unpaid}، تأخير ${l.cnt.late30}`:""}`,l.absDed],["خصومات أخرى",+l.otherDed||0]])}</div></div>
    <p style="margin-top:6mm">IBAN: <span dir="ltr">${esc(l.iban||"—")}</span></p><div style="display:grid;grid-template-columns:1fr 1fr;gap:20mm;margin-top:18mm"><div style="border-top:1px solid #999;padding-top:2mm">توقيع الموظف</div><div style="border-top:1px solid #999;padding-top:2mm">اعتماد الإدارة</div></div>`;
-  savePdf(reportHTML("قسيمة راتب",`${l.name} · ${mLabel(payMonth)}`,html,false),`payslip-${payMonth}-${(l.name||"").replace(/\s+/g,"_")}.pdf`,false)}
+  SENDTO=ctxE(l);savePdf(reportHTML("قسيمة راتب",`${l.name} · ${mLabel(payMonth)}`,html,false),`payslip-${payMonth}-${(l.name||"").replace(/\s+/g,"_")}.pdf`,false)}
 
 /* ================= VAT ================= */
 function qRange(d){const y=+d.slice(0,4),q=Math.floor((+d.slice(5,7)-1)/3);return[`${y}-${pad(q*3+1)}-01`,`${y}-${pad(q*3+3)}-${daysInMonth(`${y}-${pad(q*3+3)}`)}`]}
@@ -1288,9 +1288,18 @@ function vCompany(){
   <div class="card"><h3>الحساب البنكي</h3><div class="grid2">${f("bankName","اسم البنك")}${f("accountNo","رقم الحساب")}${f("iban","IBAN","text","full")}
    <label class="f full" style="display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="s_showCards" style="width:auto" ${s.showCards?"checked":""}> إظهار شعارات Visa و Mastercard و Amex على الفاتورة</label></div></div>
   <div class="card"><h3>الفواتير</h3><div class="grid2">${f("prefix","بادئة رقم الفاتورة")}${f("startNo","يبدأ الترقيم من","number")}${f("currency","العملة")}${f("vatRate","نسبة الضريبة %","number")}${f("dueDays","مهلة السداد الافتراضية (يوم)","number")}${f("invoiceTerms","شروط وملاحظات تظهر أسفل الفاتورة (اختياري)","textarea","full")}</div><p class="muted" style="font-size:12.5px;margin:12px 0 0">رقم الفاتورة التالية: <b class="n">${esc(s.prefix)}${nextInvNo()}</b></p></div>
+  <div class="card"><h3>📤 إرسال الفواتير والتقارير</h3><p class="muted" style="margin:0 0 10px;font-size:12.5px">الرسالة اللي بتطلع جاهزة لما تدوس "واتساب" أو "إيميل" في معاينة أي فاتورة أو فاوتشر أو تقرير. تقدر تستخدم: <span dir="ltr">{name} {doc} {no} {total} {company} {phone}</span></p><div class="grid2">
+   <label class="f full">رسالة الواتساب<textarea id="s_waMsg" rows="5">${esc(s.waMsg||TPL_WA)}</textarea></label>
+   <label class="f full">موضوع الإيميل<input id="s_mailSubject" value="${esc(s.mailSubject||TPL_SUB)}"></label>
+   <label class="f full">نص الإيميل<textarea id="s_mailBody" rows="6">${esc(s.mailBody||TPL_BODY)}</textarea></label>
+   <label class="f">نسخة لكل إيميل (CC)<input id="s_mailCc" dir="ltr" value="${esc(s.mailCc||s.email||"")}"></label>
+   <label class="f">الإيميل يتبعت من<select id="s_mailVia"><option value="gmail" ${(s.mailVia||"gmail")==="gmail"?"selected":""}>Gmail</option><option value="app" ${s.mailVia==="app"?"selected":""}>تطبيق البريد على الجهاز</option></select></label>
+   <label class="f">كود الدولة للأرقام المحلية<input id="s_waCode" dir="ltr" value="${esc(s.waCode||"971")}"><small>لو رقم العميل مكتوب 05xxxxxxxx</small></label></div></div>
   <div class="card"><h3>تنبيهات واتساب</h3><div class="grid2">${f("waNumber","رقم الواتساب لاستلام التنبيهات (بالكود الدولي)","tel")}</div><p class="muted" style="font-size:12.5px;margin:8px 0 0">كل حركة في <a href="#activity">سجل النشاط</a> لها زر "واتساب" يفتح الرسالة جاهزة على الرقم ده.</p></div>
   <div class="card"><h3>الدوام والحضور</h3><div class="grid2">${f("workStart","بداية الدوام الافتراضية","time")}${f("workEnd","نهاية الدوام الافتراضية","time")}${f("grace","دقائق السماح (تأخير بسيط بلا خصم)","number")}${f("otRate","معدل الأوفر تايم بعد الدوام (×)","number")}${f("otFriRate","معدل أوفر تايم يوم الجمعة (×)","number")}<p class="muted full" style="font-size:12.5px;margin:0">موعد كل موظف يُعدّل من ملفه. الجمعة إجازة للجميع. التأخير أكثر من 30 دقيقة = خصم نصف يوم، الغياب بدون إذن = 3 أيام، بإذن = يوم.</p>
    <label class="f full" style="display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="s_faceReq" style="width:auto" ${s.faceRequired?"checked":""}> الحضور والانصراف ببصمة الوجه فقط (إلغاء التسجيل اليدوي للموظفين)</label></div></div>
+  ${ME.admin?`<div class="card"><h3>📊 الاستهلاك والباقة</h3><div id="usageBox"><p class="muted" style="margin:0 0 10px;font-size:12.5px">الباقة المجانية: <b>1 جيجا</b> تخزين، و<b>50,000</b> قراءة و<b>20,000</b> كتابة في اليوم. دوس "احسب" عشان تشوف المساحة اللي استخدمتها تقريبًا.</p></div>
+   <div class="foot" style="flex-wrap:wrap;gap:8px"><button class="primary" data-act="usageCalc">📊 احسب الاستهلاك</button><a class="btn ghost" style="text-decoration:none;display:inline-flex;align-items:center;padding:8px 12px;border:1px solid var(--line);border-radius:10px" target="_blank" rel="noopener" href="https://console.firebase.google.com/project/${(window.FB_CONFIG||{}).projectId}/firestore/databases/-default-/usage">القراءة والكتابة اليومية</a><a class="btn ghost" style="text-decoration:none;display:inline-flex;align-items:center;padding:8px 12px;border:1px solid var(--line);border-radius:10px" target="_blank" rel="noopener" href="https://console.firebase.google.com/project/${(window.FB_CONFIG||{}).projectId}/usage/details">الباقة والترقية</a><a class="btn ghost" style="text-decoration:none;display:inline-flex;align-items:center;padding:8px 12px;border:1px solid var(--line);border-radius:10px" target="_blank" rel="noopener" href="https://console.cloud.google.com/billing">الفواتير والدفع</a></div></div>`:""}
   <div class="card"><h3>📍 نطاق تسجيل الحضور</h3><p class="muted" style="margin:0 0 10px;font-size:12.5px">لو أضفت موقع، الموظفين مش هيقدروا يسجلوا حضور أو انصراف غير وهم جوه النطاق ده. افتح الصفحة دي وإنت في المكتب ودوس "إضافة موقعي الحالي". الموظف اللي بيشتغل برا تقدر تستثنيه من ملفه.</p>
    ${(s.sites||[]).length?`<table class="t"><tbody>${s.sites.map((x,i)=>`<tr><td><b>${esc(x.name||"موقع")}</b><div class="sub"><a href="https://maps.google.com/?q=${x.lat},${x.lng}" target="_blank" rel="noopener" dir="ltr">${x.lat}, ${x.lng}</a></div></td><td class="n">${x.r} م</td><td>${ed?`<button class="ghost" data-act="siteDel" data-i="${i}">حذف</button>`:""}</td></tr>`).join("")}</tbody></table>`:`<p style="margin:0 0 10px"><span class="pill p-mut">غير مفعّل — التسجيل مسموح من أي مكان</span></p>`}
    ${ed?`<div class="grid2" style="margin-top:10px"><label class="f">اسم الموقع<input id="site_name" placeholder="مكتب عجمان"></label><label class="f">نصف القطر (متر)<input id="site_r" type="number" value="150" min="30"></label><label class="f full">الإحداثيات (اختياري)<input id="site_ll" dir="ltr" placeholder="25.4052, 55.5136 — أو سيبها فاضية واستخدم موقعك الحالي"></label></div><div class="foot" style="margin-top:10px"><button class="primary" data-act="siteAdd">📍 إضافة الموقع</button></div>`:""}</div>
@@ -1544,13 +1553,52 @@ async function docZip(id,direct){
 }
 
 /* ================= preview before download ================= */
-let PREV=null;
+let PREV=null;let SENDTO=null;
+/* ---- send documents by WhatsApp / e-mail (templates in company settings) ---- */
+const custById=id=>S.customers.find(c=>c.id===id)||null;
+const custByName=n=>n?S.customers.find(c=>(c.name||"").trim().toLowerCase()===String(n).trim().toLowerCase())||null:null;
+const tripByNo=no=>(S.trips||[]).find(t=>okey(t.orderNo)===okey(no))||null;
+function ctxInv(inv){if(!inv)return null;const c=custById(inv.customerId)||custByName(inv.customerName)||{};const k=invCalc(inv);const cur=set().currency||"AED";
+  return{doc:"الفاتورة",docEn:"Invoice",no:inv.no,name:inv.customerName||c.name||"",phone:c.phone||(tripByNo(ordInv(inv))||{}).phone||"",email:c.email||"",total:`${money(k.total)} ${cur}`,balance:k.due>0.004?`${money(k.due)} ${cur}`:""}}
+function ctxV(v){if(!v)return null;const t=tripByNo(v.orderNo)||{};const c=custByName(v.customerName)||{};return{doc:"الفاوتشر",docEn:"Voucher",no:v.no,name:v.customerName||c.name||t.name||"",phone:c.phone||t.phone||"",email:c.email||""}}
+function ctxO(o){if(!o)return null;const inv=(o.inv||[])[0];const b=inv?ctxInv(inv):{};return{...b,doc:"ملخص الملف",docEn:"Summary",no:o.no}}
+function ctxC(c){return c?{doc:"كشف الحساب",docEn:"Statement",no:"",name:c.name||"",phone:c.phone||"",email:c.email||""}:null}
+function ctxE(l){const e=S.employees.find(x=>x.id===l.empId)||{};return{doc:"قسيمة الراتب",docEn:"Payslip",no:"",name:l.name||e.name||"",phone:e.phone||"",email:e.email||""}}
+const TPL_WA="مرحبًا {name} 👋\nمرفق {doc} {no} من {company}.\n{total}\nلأي استفسار تواصل معنا على {phone}.\nشكرًا لاختياركم {company} ✈️";
+const TPL_SUB="{doc} {no} — {company}";
+const TPL_BODY="مرحبًا {name}،\n\nمرفق {doc} {no}.\n{total}\n\nلأي استفسار تواصل معنا على {phone} أو بالرد على هذا الإيميل.\n\nمع تحيات،\n{company}";
+function fillTpl(t,c){const st=set();const tot=c.total?`الإجمالي: ${c.total}${c.balance?` · المتبقي: ${c.balance}`:""}`:"";
+  return String(t||"").replace(/\{(\w+)\}/g,(m,k)=>({name:c.name||"",doc:c.doc||"الملف",no:c.no||"",total:tot,company:st.name||"Almaha Holidays",phone:st.phone||"",email:st.email||""})[k]??m).replace(/\n{3,}/g,"\n\n").replace(/ +\n/g,"\n").trim()}
+function waNum(p){let d=String(p||"").replace(/[^\d+]/g,"");if(!d)return"";if(d.startsWith("+"))return d.slice(1);if(d.startsWith("00"))return d.slice(2);const cc=String(set().waCode||"971").replace(/\D/g,"");if(d.startsWith("0"))d=d.slice(1);return d.length<=10?cc+d:d}
+async function prevBlob(){const p=PREV;if(p.kind==="pdf"){if(!window.html2pdf)throw new Error("pdf");return await makePdfBlob(p.html,p.land)}
+  const text="\ufeff"+p.rows.map(r=>r.map(x=>{const v=String(x??"");return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v}).join(",")).join("\n");return new Blob([text],{type:"text/csv"})}
+function sendDlg(how){const p=PREV;if(!p)return;const c={doc:p.kind==="csv"?"التقرير":"الملف",...(p.to||{})};const st=set();const wa=how==="wa";
+  modal(`<h2>${wa?"🟢 إرسال واتساب":"✉️ إرسال إيميل"}</h2><p class="muted" style="margin-top:0" dir="ltr">${esc(p.filename)}</p><div class="grid2">
+   ${wa?`<label class="f full">رقم الواتساب<input id="sd_to" dir="ltr" value="${esc(c.phone||"")}" placeholder="+9715xxxxxxxx — أو سيبه فاضي واختار من واتساب"></label>
+        <label class="f full">الرسالة<textarea id="sd_msg" rows="6">${esc(fillTpl(st.waMsg||TPL_WA,c))}</textarea></label>`
+       :`<label class="f full">إلى<input id="sd_to" dir="ltr" type="email" value="${esc(c.email||"")}" placeholder="customer@email.com"></label>
+        <label class="f full">نسخة (CC)<input id="sd_cc" dir="ltr" value="${esc(st.mailCc||"")}"></label>
+        <label class="f full">الموضوع<input id="sd_sub" value="${esc(fillTpl(st.mailSubject||TPL_SUB,c))}"></label>
+        <label class="f full">الرسالة<textarea id="sd_msg" rows="7">${esc(fillTpl(st.mailBody||TPL_BODY,c))}</textarea></label>`}</div>
+   <p class="muted" style="font-size:12.5px">${canShareFiles()?"هيفتحلك قايمة المشاركة: اختار <b>"+(wa?"واتساب":"Gmail أو البريد")+"</b> والملف هيكون مرفق لوحده.":"الملف هينزل على الجهاز، و"+(wa?"واتساب":"الإيميل")+" هيفتح بالرسالة جاهزة — <b>اسحب الملف اللي نزل جوه "+(wa?"المحادثة":"الإيميل")+"</b>."}</p>
+   <div class="foot"><button class="primary" data-act="sendGo" data-how="${how}">${wa?"إرسال واتساب":"إرسال إيميل"}</button><button data-act="sendBack">رجوع</button></div>`)}
+const canShareFiles=()=>{try{return !!(navigator.canShare&&navigator.canShare({files:[new File(["x"],"x.pdf",{type:"application/pdf"})]}))&&matchMedia("(pointer:coarse)").matches}catch{return false}};
+async function sendGo(how){const p=PREV;if(!p)return;const st=set();const to=($("#sd_to")||{}).value||"",msg=($("#sd_msg")||{}).value||"";
+  let blob;try{busy("جاري تجهيز الملف…");blob=await prevBlob();busy(null)}catch{busy(null);return toast("تعذر تجهيز الملف")}
+  const file=new File([blob],p.filename,{type:blob.type||"application/pdf"});
+  if(canShareFiles()){try{if(how==="wa")await navigator.clipboard?.writeText(msg).catch(()=>{});await navigator.share({files:[file],title:how==="wa"?p.filename:($("#sd_sub")||{}).value,text:msg});toast("تم ✓");return}catch(e){if(e&&e.name==="AbortError")return}}
+  try{await DL.save({filename:p.filename,data:blob})}catch{}
+  if(how==="wa"){const n=waNum(to);window.open(`https://wa.me/${n}?text=${encodeURIComponent(msg)}`,"_blank","noopener")}
+  else{const sub=($("#sd_sub")||{}).value||"",cc=($("#sd_cc")||{}).value||"";
+    if((st.mailVia||"gmail")==="gmail")window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&cc=${encodeURIComponent(cc)}&su=${encodeURIComponent(sub)}&body=${encodeURIComponent(msg)}`,"_blank","noopener");
+    else location.href=`mailto:${encodeURIComponent(to)}?${cc?`cc=${encodeURIComponent(cc)}&`:""}subject=${encodeURIComponent(sub)}&body=${encodeURIComponent(msg)}`}
+  toast("الملف نزل — اسحبه جوه "+(how==="wa"?"محادثة واتساب":"الإيميل")+" وابعت")}
 function prevShell(title,body,act){OPEN=null;
-  modal(`<div class="head" style="margin-bottom:10px"><div><h2 style="margin:0">معاينة · ${esc(title)}</h2><p>راجع الملف، وبعدها اضغط تحميل.</p></div><div class="tools"><button class="primary" data-act="${act}">${ic("dl")}تحميل</button><button data-act="prevBack">رجوع</button></div></div>${body}`,"wide")}
+  modal(`<div class="head" style="margin-bottom:10px"><div><h2 style="margin:0">معاينة · ${esc(title)}</h2><p>راجع الملف، وبعدها اضغط تحميل.</p></div><div class="tools"><button class="primary" data-act="${act}">${ic("dl")}تحميل</button>${PREV&&(PREV.kind==="pdf"||PREV.kind==="csv")?`<button data-act="sendWa" style="background:#25d366;color:#fff;border-color:#25d366">واتساب</button><button data-act="sendMail">✉️ إيميل</button>`:""}<button data-act="prevBack">رجوع</button></div></div>${body}`,"wide")}
 function fitPreview(){const w=$("#prevPaper");if(!w)return;const inner=w.firstElementChild;if(!inner)return;inner.style.zoom=1;const avail=w.clientWidth-8,need=inner.scrollWidth;if(need>avail)inner.style.zoom=Math.max(.3,avail/need).toFixed(3)}
-function previewPdf(html,filename,land){PREV={kind:"pdf",html,filename,land,back:PREV&&PREV.back||null};
+function previewPdf(html,filename,land){PREV={kind:"pdf",html,filename,land,back:PREV&&PREV.back||null,to:SENDTO};SENDTO=null;
   prevShell(filename,`<div class="paperwrap" id="prevPaper" dir="ltr" style="background:var(--surface-2);border-radius:10px;padding:12px"><div style="width:max-content;margin:0 auto;box-shadow:0 2px 16px rgba(0,0,0,.14);background:#fff">${html}</div></div>`,"prevDl");setTimeout(fitPreview,0)}
-function previewCsv(rows,filename){PREV={kind:"csv",rows,filename,back:PREV&&PREV.back||null};const head=rows[0]||[],body=rows.slice(1);
+function previewCsv(rows,filename){PREV={kind:"csv",rows,filename,back:PREV&&PREV.back||null,to:SENDTO};SENDTO=null;const head=rows[0]||[],body=rows.slice(1);
   prevShell(filename,`<div class="tablewrap solo" style="max-height:65vh;overflow:auto"><table class="t"><thead><tr>${head.map(h=>`<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${body.slice(0,300).map(r=>`<tr>${r.map(v=>`<td>${esc(v)}</td>`).join("")}</tr>`).join("")||`<tr><td colspan="${head.length||1}" class="muted">لا توجد بيانات</td></tr>`}</tbody></table></div>${body.length>300?`<p class="muted" style="font-size:12.5px">معروض أول 300 صف من ${body.length}، والملف فيه كل الصفوف.</p>`:`<p class="muted" style="font-size:12.5px">${body.length} صف · ملف Excel (CSV)</p>`}`,"prevDl")}
 function previewZip(title,files,act,id){PREV={kind:"zip",act,id,back:OPEN?{...OPEN}:null};
   prevShell(title,`<div class="card"><h3>محتويات الملف المضغوط (${files.length} ملف)</h3><div class="tablewrap solo"><table class="t"><thead><tr><th>الملف</th><th>النوع</th><th></th></tr></thead><tbody>${files.map(f=>`<tr><td class="n" style="text-align:right"><b>${esc(f.name)}</b></td><td class="muted">${esc(f.type)}</td><td>${f.view?`<a class="ghost sm" style="text-decoration:none;color:var(--brand)" href="${f.view}" target="_blank" rel="noopener">عرض</a>`:f.prev?`<button class="ghost sm" data-act="${f.prev}" data-id="${esc(f.id||"")}">معاينة</button>`:""}</td></tr>`).join("")||`<tr><td colspan="3" class="muted">لا توجد ملفات</td></tr>`}</tbody></table></div></div>`,"prevDl")}
@@ -1836,7 +1884,7 @@ async function orderZip(id,direct){
     await DL.save({filename:`${no}.zip`,data:blob});toast(miss?`تم الحفظ، وتعذر إضافة ${miss} مرفق`:"تم حفظ الملف")}
   catch(e){busy(null);if(!e||e.code!=="declined")toast("تعذر تجهيز الملف")}
 }
-function orderPdf(id){const key=decodeURIComponent(id);const o=allOrders().find(x=>x.key===key);if(!o)return;savePdf(orderSummaryHTML(o),`${safeName(o.no)}_Summary.pdf`,true)}
+function orderPdf(id){const key=decodeURIComponent(id);const o=allOrders().find(x=>x.key===key);if(!o)return;SENDTO=ctxO(o);savePdf(orderSummaryHTML(o),`${safeName(o.no)}_Summary.pdf`,true)}
 function orderSummaryHTML(o){const fin=can("bills");
   const kv=`<div class="kv"><div><span>وارد من العميل</span><b>${money(o.inT)}</b></div><div><span>المحصّل</span><b>${money(o.inPaid)}</b></div><div><span>متبقي على العميل</span><b>${money(o.inDue)}</b></div>${fin?`<div><span>صافي الربح</span><b>${money(o.profit)}</b></div><div><span>صادر للموردين</span><b>${money(o.outT)}</b></div><div><span>متبقي للموردين</span><b>${money(o.outDue)}</b></div><div><span>مصروفات</span><b>${money(o.exp)}</b></div><div><span>هامش الربح</span><b>${o.margin.toFixed(1)}%</b></div>`:""}</div>`;
   const mv=ordMoves(o).filter(m=>fin||m.kind==="inv");
@@ -2053,8 +2101,8 @@ document.addEventListener("click",async e=>{
     case "vEdit":vForm(id);break;
     case "vDup":{const v=(S.vouchers||[]).find(x=>x.id===id);if(v){const c=JSON.parse(JSON.stringify(v));c.id=uid();c.no=nextVchNo();c.date=today();VD={v:c,isNew:true,back:null};OPEN=null;drawV()}break}
     case "vDel":{const vid=id;confirmBtn(t,async()=>{closeModal();await del("vouchers",vid);toast("تم حذف الفاوتشر")});break}
-    case "vPdf":{const v=(S.vouchers||[]).find(x=>x.id===id);if(v)savePdf(vPaper(v),`${safeName(v.orderNo||v.no)}_Voucher_${safeName(v.no)}.pdf`,false,true);break}
-    case "vPrevPdf":{const v=(S.vouchers||[]).find(x=>x.id===id);if(v){const z=PREV;PREV={back:z&&z.back};previewPdf(vPaper(v),`${safeName(v.no)}_Voucher.pdf`,false);PREV.zip=z}break}
+    case "vPdf":{const v=(S.vouchers||[]).find(x=>x.id===id);if(v)SENDTO=ctxV(v);if(v)savePdf(vPaper(v),`${safeName(v.orderNo||v.no)}_Voucher_${safeName(v.no)}.pdf`,false,true);break}
+    case "vPrevPdf":{const v=(S.vouchers||[]).find(x=>x.id===id);if(v){const z=PREV;PREV={back:z&&z.back};SENDTO=ctxV(v);previewPdf(vPaper(v),`${safeName(v.no)}_Voucher.pdf`,false);PREV.zip=z}break}
     case "vMulti":vSync();VD.v.multi=t.dataset.v==="1";if(VD.v.multi&&VD.v.stays.length<2)VD.v.stays.push({hotel:"",city:"",checkIn:VD.v.stays[0].checkOut||"",checkOut:"",room:"",board:VD.v.stays[0].board});drawV();break;
     case "vStayAdd":{vSync();const l=VD.v.stays[VD.v.stays.length-1];VD.v.stays.push({hotel:"",city:"",checkIn:l.checkOut||"",checkOut:"",room:"",board:l.board});drawV();break}
     case "vStayRm":vSync();VD.v.stays.splice(+t.dataset.i,1);drawV();break;
@@ -2072,8 +2120,8 @@ document.addEventListener("click",async e=>{
     case "vBackForm":drawV();break;
     case "vCancel":{const b=VD&&VD.back;VD=null;backTo(b);break}
     case "prevBack":prevBack();break;
-    case "prevInv":{const inv=S.invoices.find(i=>i.id===id);if(inv){const z=PREV;PREV={back:z&&z.back};previewPdf(invoicePaper(inv),`${safeName(inv.no)}_Invoice.pdf`,false);PREV.zip=z}break}
-    case "prevOrdSum":{const o=allOrders().find(x=>x.id===id);if(o){const z=PREV;PREV={back:z&&z.back};previewPdf(orderSummaryHTML(o),`${safeName(o.no)}_Summary.pdf`,true);PREV.zip=z}break}
+    case "prevInv":{const inv=S.invoices.find(i=>i.id===id);if(inv){const z=PREV;PREV={back:z&&z.back};SENDTO=ctxInv(inv);previewPdf(invoicePaper(inv),`${safeName(inv.no)}_Invoice.pdf`,false);PREV.zip=z}break}
+    case "prevOrdSum":{const o=allOrders().find(x=>x.id===id);if(o){const z=PREV;PREV={back:z&&z.back};SENDTO=ctxO(o);previewPdf(orderSummaryHTML(o),`${safeName(o.no)}_Summary.pdf`,true);PREV.zip=z}break}
     case "docNew":{modal(`<h2>ملف جوازات وحجوزات جديد</h2><div class="grid2"><label class="f full">رقم الأوردر<input id="dn_no" dir="ltr" list="orderlist" placeholder="مثال: 3533"><small>اختار أوردر موجود أو اكتب رقم جديد</small></label></div><div class="foot"><button class="primary" data-act="docNewOk">فتح الملف</button><button data-act="close">إلغاء</button></div>`);break}
     case "docNewOk":{const v=$("#dn_no").value.trim();if(!v)return toast("اكتب رقم الأوردر");NEWNO[okey(v)]=v;docDetail(encodeURIComponent(okey(v)));break}
     case "docOpen":GQ="";docDetail(id);break;
@@ -2091,14 +2139,14 @@ document.addEventListener("click",async e=>{
     case "ofUp":ofUpload(id);break;
     case "ofDl":ofDownload(id);break;
     case "ofDel":confirmBtn(t,()=>ofDelete(id));break;
-    case "invPdfId":{e.stopPropagation();const inv=S.invoices.find(i=>i.id===id);if(inv)savePdf(invoicePaper(inv),`${safeName(ordInv(inv))}_Invoice${okey(inv.no)!==okey(ordInv(inv))?"_"+safeName(inv.no):""}.pdf`,false);break}
+    case "invPdfId":{e.stopPropagation();const inv=S.invoices.find(i=>i.id===id);if(inv)SENDTO=ctxInv(inv);if(inv)savePdf(invoicePaper(inv),`${safeName(ordInv(inv))}_Invoice${okey(inv.no)!==okey(ordInv(inv))?"_"+safeName(inv.no):""}.pdf`,false);break}
     case "newInvOrd":{const o=allOrders().find(x=>x.id===id);closeModal();invForm(null,o&&o.cids[0]||"",o&&o.no);break}
     case "addBillOrd":{const o=allOrders().find(x=>x.id===id);openForm("bills",null,{orderNo:o.no,customerId:o.cids[0]||"",supplierId:S.suppliers[0]?.id||""});break}
     case "addExpOrd":{const o=allOrders().find(x=>x.id===id);openForm("expenses",null,{orderNo:o.no});break}
     case "openInv":GQ="";payBox=false;showInvoice(id);break;
     case "editInv":{const inv=S.invoices.find(i=>i.id===OPEN.id);closeModal();invForm(inv);break}
     case "delInv":confirmBtn(t,async()=>{const iid=OPEN.id;closeModal();await del("invoices",iid);toast("تم حذف الفاتورة")});break;
-    case "invPdf":{const inv=S.invoices.find(i=>i.id===OPEN.id);savePdf(invoicePaper(inv),`${safeName(ordInv(inv))}_Invoice${okey(inv.no)!==okey(ordInv(inv))?"_"+safeName(inv.no):""}.pdf`,false,true);break}
+    case "invPdf":{const inv=S.invoices.find(i=>i.id===OPEN.id);SENDTO=ctxInv(inv);savePdf(invoicePaper(inv),`${safeName(ordInv(inv))}_Invoice${okey(inv.no)!==okey(ordInv(inv))?"_"+safeName(inv.no):""}.pdf`,false,true);break}
     case "ivAdd":invDraft.d.items.push({code:"",desc:"",qty:1,amount:0});invDraft.draw();break;
     case "ivRm":invDraft.d.items.splice(+t.dataset.i,1);invDraft.draw();break;
     case "ivSave":invSave();break;
@@ -2155,11 +2203,25 @@ document.addEventListener("click",async e=>{
       catch(e){busy(null);toast("تعذرت القراءة: "+String((e&&e.message)||e).slice(0,80))}}break;
     case "sndToggle":ls.set("erp-sound",sndOn()?"0":"1");if(sndOn())sound("note");render();break;
     case "notifOn":askNotif();break;
+    case "usageCalc":{const box=$("#usageBox");if(!box)break;box.innerHTML=`<p class="muted">جاري الحساب…</p>`;
+      try{const cols=[...COLS,"accounts"];let data=0,docs=0,att=0;cols.forEach(c=>(S[c]||[]).forEach(d=>{const n=JSON.stringify(d).length+64;data+=n;docs++;if(c==="attendance")att+=n}));
+        data+=JSON.stringify(S.settings||{}).length+(S.bg||"").length;
+        const q=await DB.collection("blobs").get();let files=0,fc=0;q.docs.forEach(d=>{const v=d.data();files+=Math.round((v.size||0)*1.37)+200;fc++});
+        const tot=data+files,MB=x=>(x/1048576).toFixed(x<1048576*10?1:0),pct=Math.min(100,tot/1073741824*100);
+        const bar=`<div style="height:12px;border-radius:8px;background:var(--surface-2);overflow:hidden;margin:6px 0 4px"><div style="height:100%;width:${Math.max(1,pct).toFixed(1)}%;background:${pct>80?"#b3261e":pct>60?"#e3922a":"#1d7a45"}"></div></div>`;
+        box.innerHTML=`<div style="font-size:15px"><b>${MB(tot)} ميجا</b> <span class="muted">من 1024 ميجا مجانًا (${pct.toFixed(1)}%)</span></div>${bar}
+          <table class="t" style="margin-top:8px"><tbody><tr><td>صور الجوازات والملفات</td><td class="n">${fc} ملف</td><td class="n"><b>${MB(files)} م</b></td></tr><tr><td>صور الحضور</td><td></td><td class="n"><b>${MB(att)} م</b></td></tr><tr><td>البيانات (فواتير، عملاء، موظفين…)</td><td class="n">${docs} سجل</td><td class="n"><b>${MB(data-att)} م</b></td></tr></tbody></table>
+          <p class="muted" style="font-size:12px;margin:8px 0 0">${pct>80?"⚠️ قربت توصل للحد المجاني — فكّر في الترقية لـ Blaze أو امسح ملفات قديمة.":pct>60?"المساحة كويسة، بس تابعها كل شهر.":"✓ المساحة كويسة جدًا."} الرقم تقريبي؛ الرقم الرسمي في صفحة الباقة في Firebase.</p>`}
+      catch(e){box.innerHTML=`<p class="muted">تعذر الحساب، جرّب تاني.</p>`}}break;
+    case "sendWa":sendDlg("wa");break;
+    case "sendMail":sendDlg("mail");break;
+    case "sendGo":sendGo(t.dataset.how);break;
+    case "sendBack":{const p=PREV;if(p&&p.kind==="pdf"){const b=p.back,to=p.to;SENDTO=to;PREV={back:b};previewPdf(p.html,p.filename,p.land)}else if(p&&p.kind==="csv"){const b=p.back,to=p.to;SENDTO=to;PREV={back:b};previewCsv(p.rows,p.filename)}}break;
     case "pvSave":{try{const b=await (await fetch(window.__pv)).blob();await DL.save({filename:(t.dataset.n||"photo").replace(/[\\/:*?"<>|]+/g,"-")+".jpg",data:b,mimeType:"image/jpeg"})}catch{toast("تعذر التحميل")}}break;
     case "accPhotoDel":if(accDraft){accDraft.photo="";const box=$("#ac_av");if(box)box.innerHTML=avHTML(accDraft,"lg");t.remove()}break;
     case "accDel":confirmBtn(t,async()=>{const aid=accDraft.id,un=accDraft.username;closeModal();await del("accounts",aid);try{if(un)await DB.collection("avatars").doc(un).delete()}catch{}toast("تم حذف المستخدم")});break;
     case "rmLogo":{const s={...S.settings};delete s.logo;await saveSettings(s);toast("تمت إزالة اللوجو");break}
-    case "saveCo":{const s={...S.settings};["name","email","phone","address","trn","emirate","bankName","accountNo","iban","prefix","currency","workStart","workEnd","invoiceTerms","waNumber"].forEach(k=>{const el=$("#s_"+k);if(el)s[k]=el.value.trim()});["startNo","vatRate","dueDays","grace","otRate","otFriRate"].forEach(k=>{const el=$("#s_"+k);if(el)s[k]=+el.value||0});s.showCards=$("#s_showCards").checked;s.faceRequired=$("#s_faceReq").checked;
+    case "saveCo":{const s={...S.settings};["name","email","phone","address","trn","emirate","bankName","accountNo","iban","prefix","currency","workStart","workEnd","invoiceTerms","waNumber","waMsg","mailSubject","mailBody","mailCc","mailVia","waCode"].forEach(k=>{const el=$("#s_"+k);if(el)s[k]=el.value.trim()});["startNo","vatRate","dueDays","grace","otRate","otFriRate"].forEach(k=>{const el=$("#s_"+k);if(el)s[k]=+el.value||0});s.showCards=$("#s_showCards").checked;s.faceRequired=$("#s_faceReq").checked;
       const f=$("#s_logoFile").files[0];if(f){try{s.logo=await readLogo(f)}catch{return toast("تعذر قراءة صورة اللوجو")}}try{await saveSettings(s);toast("تم حفظ بيانات الشركة")}catch{}break}
   }
 });
