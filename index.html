@@ -727,11 +727,13 @@ function pickSelfie(){return new Promise((res,rej)=>{const inp=$("#faceInput");i
   const done=()=>{inp.removeEventListener("change",done);inp.removeEventListener("cancel",cancel);const f=inp.files&&inp.files[0];f?res(f):rej(new Error("cancel"))};
   const cancel=()=>{inp.removeEventListener("change",done);inp.removeEventListener("cancel",cancel);rej(new Error("cancel"))};
   inp.addEventListener("change",done);inp.addEventListener("cancel",cancel);inp.click()})}
-function fileImage(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file);const im=new Image();im.onload=()=>{res(im);setTimeout(()=>URL.revokeObjectURL(u),1000)};im.onerror=()=>rej(new Error("img"));im.src=u})}
+function fileImage(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file);const im=new Image();im.onload=()=>{res(im);setTimeout(()=>URL.revokeObjectURL(u),1000)};im.onerror=async()=>{try{const bm=await createImageBitmap(file);res(bm)}catch{rej(new Error("img"))}};im.src=u})}
 async function faceFromFile(file){
   const f=await loadFace();const im=await fileImage(file);
   const k=Math.min(1,800/Math.max(im.width,im.height));const c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext("2d").drawImage(im,0,0,c.width,c.height);
-  const det=await f.detectAllFaces(c,new f.TinyFaceDetectorOptions({inputSize:416,scoreThreshold:.45})).withFaceLandmarks().withFaceDescriptors();
+  const run=()=>f.detectAllFaces(c,new f.TinyFaceDetectorOptions({inputSize:416,scoreThreshold:.45})).withFaceLandmarks().withFaceDescriptors();
+  let det;try{det=await run()}catch(err){try{await f.tf.setBackend("cpu");await f.tf.ready();det=await run()}catch(err2){throw err2}}
+  if(!det.length&&f.tf.getBackend()!=="cpu"){try{await f.tf.setBackend("cpu");await f.tf.ready();det=await run()}catch{}}
   if(!det.length)throw new Error("noface");
   det.sort((a,b)=>b.detection.box.area-a.detection.box.area);const d=det[0];
   if(det.length>1&&det[1].detection.box.area>d.detection.box.area*.5)throw new Error("many");
@@ -743,7 +745,7 @@ const fdist=(a,b)=>{let s=0;for(let i=0;i<a.length;i++){const d=a[i]-b[i];s+=d*d
 const faceSet=e=>(e&&e.face&&e.face.ds)||[];
 const bestDist=(e,desc)=>{const ds=faceSet(e);return ds.length?Math.min(...ds.map(x=>fdist(x,desc))):Infinity};
 function faceErr(e){const m=e&&e.message;busy(null);if(m==="cancel")return;
-  toast(m==="noface"?"لم يظهر وجه واضح في الصورة. صوّر وجهك من الأمام في إضاءة جيدة":m==="many"?"ظهر أكثر من وجه في الصورة. صوّر وجهك وحدك":m==="old"?"التقط صورة جديدة بالكاميرا الآن، الصور القديمة غير مقبولة":m==="script"||(e&&/fetch|load|model/i.test(String(e)))?"تعذر تحميل نظام التعرف على الوجه. تأكد من الاتصال وافتح النظام من رابطه":"تعذر التحقق من الوجه، حاول مرة أخرى")}
+  toast(m==="noface"?"لم يظهر وجه واضح في الصورة. صوّر وجهك من الأمام في إضاءة جيدة":m==="many"?"ظهر أكثر من وجه في الصورة. صوّر وجهك وحدك":m==="old"?"التقط صورة جديدة بالكاميرا الآن، الصور القديمة غير مقبولة":m==="script"||(e&&/fetch|load|model/i.test(String(e)))?"تعذر تحميل نظام التعرف على الوجه. تأكد من الاتصال وافتح النظام من رابطه":"تعذر التحقق من الوجه، حاول مرة أخرى ("+String((e&&(e.message||e.code))||e||"").slice(0,60)+")")}
 async function getFace(fresh){const fp=pickSelfie();loadFace().catch(()=>{});const file=await fp;if(fresh&&file.lastModified&&Date.now()-file.lastModified>180000)throw new Error("old");busy("جاري التحقق من الوجه…");const r=await faceFromFile(file);busy(null);return r}
 function nextAttField(empId){const a=S.attendance.find(x=>x.id===`${today()}_${empId}`)||{};return !a.in?"in":!a.out?"out":null}
 async function punch(emp,r,d){const f=nextAttField(emp.id);if(!f)return{f:null};const tm=nowHM();await saveAtt(emp.id,today(),{[f]:tm,[f+"M"]:"face",[f+"D"]:Math.round(d*1000)/1000,[f+"P"]:r.thumb,[f+"By"]:ME.name});return{f,tm}}
