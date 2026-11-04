@@ -721,7 +721,7 @@ function busy(msg){$("#busy").innerHTML=msg?`<div class="busy"><div><div class="
 function loadScript(src){return new Promise((res,rej)=>{const el=document.createElement("script");el.src=src;el.onload=res;el.onerror=()=>rej(new Error("script"));document.head.appendChild(el)})}
 function loadFace(){if(FA)return Promise.resolve(FA);if(faLoading)return faLoading;
   faLoading=(async()=>{if(!window.faceapi)await loadScript("face-api.js");const f=window.faceapi;await f.tf.ready();
-    const pack=async(net,name)=>{const r=await fetch(`models/${name}.pack.json`);if(!r.ok)throw new Error("model");const j=await r.json();const bin=atob(j.b64);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);net.loadFromWeightMap(f.tf.io.decodeWeights(u.buffer,j.weights))};
+    const pack=async(net,name)=>{const r=await fetch(`${name}.pack.json`);if(!r.ok)throw new Error("model");const j=await r.json();const bin=atob(j.b64);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);net.loadFromWeightMap(f.tf.io.decodeWeights(u.buffer,j.weights))};
     await Promise.all([pack(f.nets.tinyFaceDetector,"tiny_face_detector_model"),pack(f.nets.faceLandmark68Net,"face_landmark_68_model"),pack(f.nets.faceRecognitionNet,"face_recognition_model")]);FA=f;return f})().catch(e=>{faLoading=null;throw e});return faLoading}
 function pickSelfie(){return new Promise((res,rej)=>{const inp=$("#faceInput");inp.value="";
   const done=()=>{inp.removeEventListener("change",done);inp.removeEventListener("cancel",cancel);const f=inp.files&&inp.files[0];f?res(f):rej(new Error("cancel"))};
