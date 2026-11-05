@@ -947,6 +947,7 @@ document.addEventListener("submit",async e=>{
 function vDash(){
   const st=set(),m=monthOf(today());let html=hero();
   html+=myToday();
+  if(ME.admin&&st.driveClientId&&(!st.driveLast||Date.now()-new Date(st.driveLast)>864e5))html+=`<div class="card" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between"><div><b>☁️ نسخة الدرايف</b><div class="muted" style="font-size:12.5px">${st.driveLast?"آخر نسخ من أكتر من يوم — ارفع الملفات الجديدة على Google Drive":"لسه معملتش أول نسخ للملفات على Google Drive"}</div></div><button class="primary" data-act="driveSync">نسخ الآن</button></div>`;
   if(!can("dashboard"))return html;
   if(!ME.admin){
     const parts=[];
@@ -1306,6 +1307,7 @@ function vCompany(){
   <div class="card"><h3>تنبيهات واتساب</h3><div class="grid2">${f("waNumber","رقم الواتساب لاستلام التنبيهات (بالكود الدولي)","tel")}</div><p class="muted" style="font-size:12.5px;margin:8px 0 0">كل حركة في <a href="#activity">سجل النشاط</a> لها زر "واتساب" يفتح الرسالة جاهزة على الرقم ده.</p></div>
   <div class="card"><h3>الدوام والحضور</h3><div class="grid2">${f("workStart","بداية الدوام الافتراضية","time")}${f("workEnd","نهاية الدوام الافتراضية","time")}${f("grace","دقائق السماح (تأخير بسيط بلا خصم)","number")}${f("otRate","معدل الأوفر تايم بعد الدوام (×)","number")}${f("otFriRate","معدل أوفر تايم يوم الجمعة (×)","number")}<p class="muted full" style="font-size:12.5px;margin:0">موعد كل موظف يُعدّل من ملفه. الجمعة إجازة للجميع. التأخير أكثر من 30 دقيقة = خصم نصف يوم، الغياب بدون إذن = 3 أيام، بإذن = يوم.</p>
    <label class="f full" style="display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="s_faceReq" style="width:auto" ${s.faceRequired?"checked":""}> الحضور والانصراف ببصمة الوجه فقط (إلغاء التسجيل اليدوي للموظفين)</label></div></div>
+  ${ME.admin?driveCard():""}
   ${ME.admin?`<div class="card"><h3>📊 الاستهلاك والباقة</h3><div id="usageBox"><p class="muted" style="margin:0 0 10px;font-size:12.5px">الباقة المجانية: <b>1 جيجا</b> تخزين، و<b>50,000</b> قراءة و<b>20,000</b> كتابة في اليوم. دوس "احسب" عشان تشوف المساحة اللي استخدمتها تقريبًا.</p></div>
    <div class="foot" style="flex-wrap:wrap;gap:8px"><button class="primary" data-act="usageCalc">📊 احسب الاستهلاك</button><a class="btn ghost" style="text-decoration:none;display:inline-flex;align-items:center;padding:8px 12px;border:1px solid var(--line);border-radius:10px" target="_blank" rel="noopener" href="https://console.firebase.google.com/project/${(window.FB_CONFIG||{}).projectId}/firestore/databases/-default-/usage">القراءة والكتابة اليومية</a><a class="btn ghost" style="text-decoration:none;display:inline-flex;align-items:center;padding:8px 12px;border:1px solid var(--line);border-radius:10px" target="_blank" rel="noopener" href="https://console.firebase.google.com/project/${(window.FB_CONFIG||{}).projectId}/usage/details">الباقة والترقية</a><a class="btn ghost" style="text-decoration:none;display:inline-flex;align-items:center;padding:8px 12px;border:1px solid var(--line);border-radius:10px" target="_blank" rel="noopener" href="https://console.cloud.google.com/billing">الفواتير والدفع</a></div></div>`:""}
   <div class="card"><h3>📍 نطاق تسجيل الحضور</h3><p class="muted" style="margin:0 0 10px;font-size:12.5px">لو أضفت موقع، الموظفين مش هيقدروا يسجلوا حضور أو انصراف غير وهم جوه النطاق ده. افتح الصفحة دي وإنت في المكتب ودوس "إضافة موقعي الحالي". الموظف اللي بيشتغل برا تقدر تستثنيه من ملفه.</p>
@@ -2053,6 +2055,93 @@ async function formSave(){
   delete data.id;try{await put(col,id,data);toast("تم الحفظ");backTo(back)}catch{}
 }
 
+/* ================= Google Drive: one organized folder with all files ================= */
+const GD_ROOT="Almaha Holidays System",GD_SCOPE="https://www.googleapis.com/auth/drive.file";
+const GD_DIRS={inv:"01 - الفواتير",vch:"02 - الفاوتشرات",pax:"03 - الجوازات والحجوزات",rec:"04 - الإيصالات والمستندات",att:"05 - صور الحضور والانصراف",rep:"06 - التقارير",trip:"07 - صور الرحلات"};
+let GD={tok:null,exp:0,map:null,busy:false,stop:false};
+const gdHash=s=>{let h1=0xdeadbeef,h2=0x41c6ce57;s=String(s);for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return(4294967296*(2097151&h2)+(h1>>>0)).toString(36)};
+const gdName=s=>String(s||"").replace(/[\\/:*?"<>|#\n\r\t]+/g," ").replace(/\s+/g," ").trim().slice(0,120)||"file";
+function gdLoadGis(){return new Promise((res,rej)=>{if(window.google&&google.accounts&&google.accounts.oauth2)return res();const s=document.createElement("script");s.src="https://accounts.google.com/gsi/client";s.async=1;s.onload=()=>res();s.onerror=()=>rej(new Error("تعذر تحميل تسجيل دخول جوجل — اتأكد من النت"));document.head.appendChild(s)})}
+async function gdToken(force){if(!force&&GD.tok&&Date.now()<GD.exp-60000)return GD.tok;const cid=(set().driveClientId||"").trim();if(!cid)throw new Error("نسخ الدرايف مش متفعل — حط Client ID في بيانات الشركة");
+  await gdLoadGis();return await new Promise((res,rej)=>{const c=google.accounts.oauth2.initTokenClient({client_id:cid,scope:GD_SCOPE,prompt:GD.tok?"":"",callback:r=>{if(r.error)return rej(new Error(r.error_description||r.error));GD.tok=r.access_token;GD.exp=Date.now()+(+r.expires_in||3600)*1000;res(GD.tok)},error_callback:e=>rej(new Error(e&&e.type==="popup_closed"?"اتقفلت نافذة جوجل قبل الموافقة":"تعذر فتح نافذة جوجل — اسمح بالنوافذ المنبثقة (Pop-ups)"))});c.requestAccessToken()})}
+async function gdFetch(url,opt={},retry){const t=await gdToken();const r=await fetch(url,{...opt,headers:{...(opt.headers||{}),Authorization:"Bearer "+t}});
+  if(r.status===401&&!retry){GD.tok=null;await gdToken(true);return gdFetch(url,opt,1)}
+  if((r.status===429||r.status>=500)&&(retry||0)<3){await new Promise(z=>setTimeout(z,1500*((retry||0)+1)));return gdFetch(url,opt,(retry||0)+1)}
+  if(!r.ok){let m="";try{m=(await r.json()).error.message}catch{}throw new Error("Drive "+r.status+(m?": "+m:""))}return r}
+async function gdList(){const map=new Map();let pt="";const q=encodeURIComponent("trashed=false and appProperties has { key='almaha' and value='1' }");
+  do{const r=await (await gdFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&pageSize=1000&fields=nextPageToken,files(id,name,mimeType,appProperties)${pt?"&pageToken="+pt:""}`)).json();
+    (r.files||[]).forEach(f=>{const k=f.appProperties&&f.appProperties.k;if(k)map.set(k,{id:f.id,v:f.appProperties.v||"",name:f.name})});pt=r.nextPageToken||""}while(pt);return map}
+async function gdFolder(path){const key="F"+gdHash(path.join("/"));const hit=GD.map.get(key);if(hit)return hit.id;
+  const parent=path.length>1?await gdFolder(path.slice(0,-1)):null;
+  const r=await (await gdFetch("https://www.googleapis.com/drive/v3/files?fields=id",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:gdName(path[path.length-1]),mimeType:"application/vnd.google-apps.folder",...(parent?{parents:[parent]}:{}),appProperties:{almaha:"1",k:key}})})).json();
+  GD.map.set(key,{id:r.id,v:""});return r.id}
+function gdNeed(key,ver){const h=GD.map.get("D"+gdHash(key));return !h||h.v!==String(ver)}
+async function gdPut(path,name,key,ver,getBlobFn){const k="D"+gdHash(key);const h=GD.map.get(k);ver=String(ver);if(h&&h.v===ver)return 0;
+  const blob=await getBlobFn();if(!blob)return 0;const folder=await gdFolder([GD_ROOT,...path]);
+  const meta={name:gdName(name),appProperties:{almaha:"1",k,v:ver}};if(!h)meta.parents=[folder];
+  const bd="almaha"+Math.random().toString(36).slice(2);const body=new Blob([`--${bd}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n`,JSON.stringify(meta),`\r\n--${bd}\r\nContent-Type: ${blob.type||"application/octet-stream"}\r\n\r\n`,blob,`\r\n--${bd}--`]);
+  const r=await (await gdFetch(h?`https://www.googleapis.com/upload/drive/v3/files/${h.id}?uploadType=multipart&fields=id`:"https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",{method:h?"PATCH":"POST",headers:{"Content-Type":"multipart/related; boundary="+bd},body})).json();
+  GD.map.set(k,{id:r.id,v:ver});return 1}
+function dataUrlBlob(u){const m=String(u).match(/^data:([^;,]+)?(;base64)?,(.*)$/);if(!m)return null;const bin=m[2]?atob(m[3]):decodeURIComponent(m[3]);const a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return new Blob([a],{type:m[1]||"image/jpeg"})}
+async function srcBlob(src){if(!src)return null;if(String(src).startsWith("data:"))return dataUrlBlob(src);const m=String(src).match(/_blob\/([\w-]+)/);if(m)return await getBlob(m[1]);return null}
+const csvBlob=rows=>new Blob(["﻿"+rows.map(r=>r.map(x=>{const v=String(x??"");return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v}).join(",")).join("\n")],{type:"text/csv"});
+const extOf=(n,t)=>{const e=String(n||"").split(".").pop();return e&&e.length<=5&&e!==n?e:((t||"").includes("pdf")?"pdf":(t||"").includes("png")?"png":"jpg")};
+/* run a list view with no filters (optionally one month) and capture its table */
+function gdView(key,fn,m,pre){const saved=UI[key];UI[key]={q:"",f:{},from:m?m+"-01":"",to:m?m+"-31":""};const keep={attTab,attMonth,payMonth};
+  try{if(pre)pre();fn();const L=LAST[key];if(!L)return null;const cols=L.o.cols.filter(c=>!c.uiOnly);return{title:L.o.title,cols,rows:L.rows}}catch(e){console.warn("report",key,e);return null}
+  finally{if(saved)UI[key]=saved;else delete UI[key];attTab=keep.attTab;attMonth=keep.attMonth;payMonth=keep.payMonth}}
+function gdRep(v){return{csv:()=>csvBlob([v.cols.map(c=>c.h),...v.rows.map(r=>v.cols.map(c=>c.n?r2(c.t(r)):c.t(r)))]),
+  html:sub=>{const sums=v.cols.map(c=>c.sum?r2(v.rows.reduce((a,r)=>a+(+c.t(r)||0),0)):null);return reportHTML(v.title,sub,repTable(v.cols.map(c=>({h:c.h,n:c.n,int:c.int})),v.rows.map(r=>v.cols.map(c=>c.t(r))),sums.some(x=>x!=null)?sums.map((s,i)=>i===0?"الإجمالي":s):null),v.cols.length>6)},
+  ver:gdHash(JSON.stringify([v.cols.map(c=>c.h),v.rows.map(r=>v.cols.map(c=>c.t(r)))]))}}
+async function driveSync(){if(GD.busy)return;if(!ME.admin)return toast("النسخ للدرايف للمدير بس");
+  GD.busy=true;GD.stop=false;let done=0,fail=0,step="";const prog=(t)=>{step=t;busy(`☁️ ${t} — اترفع ${done} ملف${fail?` · فشل ${fail}`:""}`)};
+  const tryPut=async(...a)=>{if(GD.stop)throw new Error("stop");try{done+=await gdPut(...a)}catch(e){if(String(e.message).startsWith("Drive 40")&&!String(e.message).includes("404"))throw e;fail++;console.warn(e)}};
+  try{prog("تسجيل الدخول لجوجل…");await gdToken();prog("قراءة اللي اترفع قبل كده…");GD.map=await gdList();await gdFolder([GD_ROOT]);
+    // 1) invoices
+    const invs=[...S.invoices].sort((a,b)=>(a.num||0)-(b.num||0));let i=0;
+    for(const inv of invs){i++;const ver=gdHash(JSON.stringify(inv));const key="inv:"+inv.id;if(!gdNeed(key,ver))continue;prog(`الفواتير ${i}/${invs.length}`);
+      await tryPut([GD_DIRS.inv,monthOf(inv.date)||"بدون تاريخ"],`${safeName(inv.no)}_${safeName(cust(inv.customerId).name||"")}_Invoice.pdf`,key,ver,()=>makePdfBlob(invoicePaper(inv),false))}
+    // 2) vouchers
+    const vs=S.vouchers||[];i=0;
+    for(const v of vs){i++;const ver=gdHash(JSON.stringify(v));const key="vch:"+v.id;if(!gdNeed(key,ver))continue;prog(`الفاوتشرات ${i}/${vs.length}`);const d=(v.stays||[])[0]&&v.stays[0].checkIn||v.date||(v.at||"").slice(0,10);
+      await tryPut([GD_DIRS.vch,monthOf(d)||"بدون تاريخ"],`${safeName(v.no)}_${safeName(v.customerName||"")}_Voucher.pdf`.replace(/__+/g,"_"),key,ver,()=>makePdfBlob(vPaper(v),false))}
+    // 3) passports + booking documents by order
+    const pax=(S.travelers||[]).filter(p=>p.asset&&p.asset.assetId);i=0;
+    for(const p of pax){i++;const key="pax:"+p.asset.assetId;if(!gdNeed(key,1))continue;prog(`الجوازات ${i}/${pax.length}`);const nm=[p.givenNames,p.surname].filter(Boolean).join(" ")||"passport";
+      await tryPut([GD_DIRS.pax,"أوردر "+(p.orderNo||"بدون رقم")],`Passport_${safeName(nm)}${p.passportNo?"_"+safeName(p.passportNo):""}.${extOf(p.asset.name,p.asset.contentType)}`,key,1,()=>getBlob(p.asset.assetId))}
+    const of=(S.ofiles||[]).filter(f=>f.assetId);i=0;
+    for(const f of of){i++;const key="of:"+f.assetId;if(!gdNeed(key,1))continue;prog(`المستندات والإيصالات ${i}/${of.length}`);const docs=f.area==="docs"||DOCKINDS.includes(f.kind);
+      await tryPut([docs?GD_DIRS.pax:GD_DIRS.rec,"أوردر "+(f.orderNo||"بدون رقم")],`${FK_EN[f.kind]||safeName(f.kind||"File")}_${f.name||"file"}`,key,1,()=>getBlob(f.assetId))}
+    // 4) attendance photos
+    const at=S.attendance.filter(a=>a.inP||a.outP).sort((a,b)=>(a.date||"").localeCompare(b.date||""));i=0;
+    for(const a of at){i++;for(const f of ["in","out"]){const src=a[f+"P"];if(!src)continue;const ver=gdHash(String(src).slice(-300)+(a[f]||""));const key=`att:${a.id}:${f}`;if(!gdNeed(key,ver))continue;prog(`صور الحضور ${i}/${at.length}`);
+      await tryPut([GD_DIRS.att,monthOf(a.date)||"بدون تاريخ",a.date||"بدون تاريخ"],`${safeName(empName(a.empId)||"موظف")}_${f==="in"?"حضور":"انصراف"}_${String(a[f]||"").replace(":","-")}.jpg`,key,ver,()=>srcBlob(src))}}
+    // 5) trip photo library
+    const tp=(S.vphotos||[]).filter(p=>p.assetId);i=0;
+    for(const p of tp){i++;const key="vp:"+p.assetId;if(!gdNeed(key,1))continue;prog(`صور الرحلات ${i}/${tp.length}`);
+      await tryPut([GD_DIRS.trip,p.city||"عام"],`${safeName(p.caption||p.city||"photo")}_${p.assetId.slice(0,6)}.jpg`,key,1,()=>getBlob(p.assetId))}
+    // 6) monthly reports (PDF + Excel CSV)
+    const months=new Set([monthOf(today()),monthOf(addDays(monthOf(today())+"-01",-1))]);const last=set().driveLast;
+    if(!last){[...S.invoices.map(x=>x.date),...S.attendance.map(x=>x.date),...(S.expenses||[]).map(x=>x.date)].forEach(d=>{if(d)months.add(monthOf(d))})}
+    const REPS=[["invoices","Invoices","فواتير العملاء",vInvoices],["vouchers","Vouchers","الفاوتشرات",vVouchers],["expenses","Expenses","المصروفات",vExpenses],["bills","Supplier_Bills","فواتير الموردين",vBills],
+      ["attm","Attendance","الحضور والانصراف",vAttendance,m=>{attTab="month";attMonth=m},1],["pay","Payroll","الرواتب",vPayroll,m=>{payMonth=m},1]];
+    for(const m of [...months].filter(Boolean).sort()){for(const [k,fn,ar,view,pre,noRange] of REPS){prog(`التقارير ${mLabel(m)} · ${ar}`);
+      const v=gdView(k,view,noRange?"":m,pre?()=>pre(m):null);if(!v||!v.rows.length)continue;const R=gdRep(v);const base=`${fn}_${m}`;
+      await tryPut([GD_DIRS.rep,m],base+".csv",`rep:${k}:${m}:csv`,R.ver,async()=>R.csv());
+      await tryPut([GD_DIRS.rep,m],base+".pdf",`rep:${k}:${m}:pdf`,R.ver,()=>makePdfBlob(R.html(`${mLabel(m)} · عدد السجلات: ${v.rows.length}`),v.cols.length>6))}}
+    for(const [k,fn,view] of [["customers","Customers",vCustomers],["suppliers","Suppliers",vSuppliers],["employees","Employees",vEmployees]]){const v=gdView(k,view);if(!v||!v.rows.length)continue;const R=gdRep(v);prog("قوائم العملاء والموردين والموظفين");
+      await tryPut([GD_DIRS.rep],fn+".csv",`list:${k}`,R.ver,async()=>R.csv())}
+    busy(null);const info={driveLast:new Date().toISOString(),driveBy:ME.name,driveCount:GD.map.size};try{await saveSettings({...S.settings,...info})}catch{}
+    const root=GD.map.get("F"+gdHash(GD_ROOT));
+    modal(`<h2>✅ تم النسخ على Google Drive</h2><p>اترفع <b>${done}</b> ملف جديد/متعدّل${fail?` · <span style="color:var(--danger,#e55)">تعذر ${fail} ملف (هيتجرب تاني المرة الجاية)</span>`:""}.</p><p class="muted" style="font-size:13px">كل حاجة في فولدر واحد اسمه <b dir="ltr">${GD_ROOT}</b> ومتقسم: ${Object.values(GD_DIRS).join(" · ")}. المرة الجاية بيرفع الجديد بس.</p><div class="foot">${root?`<a class="btn primary" style="text-decoration:none;padding:9px 14px;border-radius:10px" href="https://drive.google.com/drive/folders/${root.id}" target="_blank" rel="noopener">فتح الفولدر على الدرايف</a>`:""}<button data-act="close">تمام</button></div>`);sound("ok");
+  }catch(e){busy(null);if(String(e.message)!=="stop")modal(`<h2>❌ النسخ على الدرايف وقف</h2><p>${esc(e.message||String(e))}</p><p class="muted" style="font-size:13px">اللي اترفع محفوظ، ولما تدوس "نسخ الآن" تاني هيكمّل من مكان ما وقف.${step?` (وقف عند: ${esc(step)})`:""}</p><div class="foot"><button data-act="close">تمام</button></div>`)}
+  finally{GD.busy=false;render()}}
+function driveCard(){const s=set();const last=s.driveLast?new Date(s.driveLast).toLocaleString("ar-EG",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"";
+  return `<div class="card"><h3>☁️ نسخ كل الملفات على Google Drive</h3><p class="muted" style="margin:0 0 10px;font-size:12.5px">بيعمل فولدر واحد <b dir="ltr">${GD_ROOT}</b> على الدرايف بتاعك، جواه بالترتيب: ${Object.values(GD_DIRS).map(esc).join(" · ")}. كل مرة بيرفع الجديد والمتعدّل بس.</p>
+   <div class="grid2"><label class="f full">Google OAuth Client ID<input id="s_driveClientId" dir="ltr" value="${esc(s.driveClientId||"")}" placeholder="xxxxxxxx.apps.googleusercontent.com"><small>بيتعمل مرة واحدة من Google Cloud — الخطوات عند Claude</small></label></div>
+   <p class="muted" style="font-size:12.5px;margin:8px 0">${last?`آخر نسخ: <b>${last}</b>${s.driveBy?` بواسطة ${esc(s.driveBy)}`:""}`:"لسه متعملش نسخ قبل كده"}</p>
+   <div class="foot" style="flex-wrap:wrap;gap:8px"><button data-act="driveSave">حفظ الـ Client ID</button><button class="primary" data-act="driveSync" ${s.driveClientId?"":"disabled"}>☁️ نسخ الآن</button></div></div>`}
+
 /* ================= events ================= */
 document.addEventListener("change",e=>{const t=e.target;if(t&&t.dataset&&t.dataset.chg==="ccPick"){const x=document.getElementById(t.id+"_x");if(x){x.style.display=t.value==="other"?"":"none";if(t.value==="other")x.focus()}}});
 const confirmBtn=(t,fn)=>{if(t.dataset.sure){fn()}else{t.dataset.sure=1;const o=t.innerHTML;t.textContent="اضغط مرة أخرى للتأكيد";setTimeout(()=>{if(t.isConnected){delete t.dataset.sure;t.innerHTML=o}},3500)}};
@@ -2203,6 +2292,8 @@ document.addEventListener("click",async e=>{
     case "editAcc":accForm(S.accounts.find(x=>x.id===id));break;
     case "perm":accDraft.perms[t.dataset.m]=t.dataset.v;accDraft.role="custom";$("#ac_role").value="custom";drawPerms();break;
     case "accSave":accSave();break;
+    case "driveSave":{const v=($("#s_driveClientId").value||"").trim();if(v&&!/\.apps\.googleusercontent\.com$/.test(v))return toast("الـ Client ID لازم يخلص بـ .apps.googleusercontent.com");try{await saveSettings({...S.settings,driveClientId:v});GD.tok=null;toast("تم الحفظ")}catch{}break}
+    case "driveSync":driveSync();break;
     case "siteAdd":{const name=($("#site_name").value||"").trim()||"مكان العمل",r=Math.max(30,+$("#site_r").value||150),ll=($("#site_ll").value||"").trim();let lat,lng;
       if(ll){const m=ll.match(/(-?\d+(?:\.\d+)?)\s*[,،]\s*(-?\d+(?:\.\d+)?)/);if(!m)return toast("اكتب الإحداثيات كده: 25.4052, 55.5136");lat=+m[1];lng=+m[2]}
       else{try{busy("جاري تحديد موقعك…");const p=await getPos();busy(null);lat=p.coords.latitude;lng=p.coords.longitude;if(p.coords.accuracy>80)toast(`دقة الموقع ${Math.round(p.coords.accuracy)} م — لو تقدر، جرّب جنب الشباك`)}catch(err){busy(null);return toast(err&&err.code===1?"اسمح للتطبيق باستخدام الموقع من إعدادات الموبايل":"تعذر تحديد الموقع، فعّل الـ GPS")}}
