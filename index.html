@@ -1,4 +1,6 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}@keyframes spin{to{transform:rotate(360deg)}}
+.pwwrap{position:relative;display:block}.pwwrap input{width:100%;padding-left:44px!important}.pweye{position:absolute;left:6px;top:50%;transform:translateY(-50%);border:0;background:transparent;font-size:18px;padding:4px 6px;cursor:pointer;line-height:1;min-height:0;box-shadow:none}
+</style></head><body>
 <title>Almaha Holidays</title>
 <link rel="manifest" href="manifest.json"><meta name="theme-color" content="#b9650d"><link rel="icon" href="./icon-192.png"><link rel="apple-touch-icon" href="./icon-192.png">
 <script src="config.js"></script>
@@ -444,7 +446,7 @@ function stamp(d){return{...d,updatedAt:new Date().toISOString(),updatedBy:ME?ME
 async function put(col,id,data){
   const _old=col==="activity"?null:(S[col]||[]).find(x=>x.id===id)||null;
   data=stamp({...data,id});
-  await putRaw(col,id,data);logAct(col,_old,data);
+  await putRaw(col,id,data);logAct(col,_old,data);queuePdf(col,id);
 }
 async function putRaw(col,id,data){
   if(mode==="db"){try{await DB.collection(col).doc(id).set(data)}catch(e){handleErr(e);throw e}}
@@ -775,17 +777,21 @@ function loadFace(){if(FA)return Promise.resolve(FA);if(faLoading)return faLoadi
     await Promise.all([pack(f.nets.tinyFaceDetector,"tiny_face_detector_model"),pack(f.nets.faceLandmark68Net,"face_landmark_68_model"),pack(f.nets.faceRecognitionNet,"face_recognition_model")]);FA=f;return f})().catch(e=>{faLoading=null;throw e});return faLoading}
 /* laptops/desktops: live webcam window instead of the file picker */
 const isDesk=()=>!(window.matchMedia&&matchMedia("(pointer:coarse)").matches)&&!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia);
-function webcamShot(){return new Promise(async(res,rej)=>{let stream;
+let CAMNOTE="";
+function webcamShot(){return new Promise(async(res,rej)=>{let stream;const note=CAMNOTE;CAMNOTE="";
   try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:1280},height:{ideal:720}},audio:false})}catch(e){return rej(new Error(e&&e.name==="NotAllowedError"?"camdenied":"nocam"))}
   const ov=document.createElement("div");ov.style.cssText="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.82);display:grid;place-items:center;padding:16px";
-  ov.innerHTML=`<div style="background:var(--surface);color:var(--fg);border-radius:16px;padding:16px;max-width:640px;width:100%;display:grid;gap:12px"><b style="font-size:17px">📷 بص في الكاميرا</b><video autoplay playsinline muted style="width:100%;border-radius:12px;background:#000;transform:scaleX(-1)"></video><div style="display:flex;gap:10px;justify-content:flex-end"><button class="primary" data-k="shot">التقاط</button><button data-k="no">إلغاء</button></div></div>`;
+  ov.innerHTML=`<div style="background:var(--surface);color:var(--fg);border-radius:16px;padding:16px;max-width:640px;width:100%;display:grid;gap:12px">${note?`<div style="background:var(--ok-soft);color:var(--ok);border-radius:10px;padding:8px 12px;font-weight:600;font-size:14px">${note}</div>`:""}<b style="font-size:17px">📷 بص في الكاميرا</b><video autoplay playsinline muted style="width:100%;border-radius:12px;background:#000;transform:scaleX(-1)"></video><div style="display:flex;gap:10px;justify-content:flex-end"><button class="primary" data-k="shot">التقاط</button><button data-k="no">إلغاء</button></div></div>`;
   document.body.appendChild(ov);const v=ov.querySelector("video");v.srcObject=stream;
   const end=()=>{stream.getTracks().forEach(t=>t.stop());ov.remove()};
   ov.addEventListener("click",ev=>{const k=ev.target.closest("[data-k]");if(!k)return;ev.stopPropagation();
     if(k.dataset.k==="no"){end();return rej(new Error("cancel"))}
     const c=document.createElement("canvas");c.width=v.videoWidth||1280;c.height=v.videoHeight||720;c.getContext("2d").drawImage(v,0,0,c.width,c.height);end();
     c.toBlob(b=>b?res(new File([b],"camera.jpg",{type:"image/jpeg",lastModified:Date.now()})):rej(new Error("nocam")),"image/jpeg",.92)})})}
-function pickSelfie(){if(isDesk())return webcamShot().catch(e=>{if(e&&e.message==="nocam")return pickSelfieFile();throw e});return pickSelfieFile()}
+function pickSelfie(){if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)return webcamShot().catch(e=>{if(e&&e.message==="nocam")return pickSelfieTap();throw e});return pickSelfieTap()}
+/* phones block opening the camera picker without a fresh tap, so ask for one */
+function pickSelfieTap(){return new Promise((res,rej)=>{CAMNOTE="";modal(`<h2>📷 الكاميرا</h2><p class="muted">اضغط الزرار عشان تفتح الكاميرا وتصوّر وشك.</p><div class="foot"><button class="primary" id="camGo">📷 افتح الكاميرا</button><button id="camNo">إلغاء</button></div>`);
+  $("#camGo").onclick=()=>{closeModal();pickSelfieFile().then(res,rej)};$("#camNo").onclick=()=>{closeModal();rej(new Error("cancel"))}})}
 function pickSelfieFile(){return new Promise((res,rej)=>{const inp=$("#faceInput");inp.value="";
   const done=()=>{inp.removeEventListener("change",done);inp.removeEventListener("cancel",cancel);const f=inp.files&&inp.files[0];f?res(f):rej(new Error("cancel"))};
   const cancel=()=>{inp.removeEventListener("change",done);inp.removeEventListener("cancel",cancel);rej(new Error("cancel"))};
@@ -814,15 +820,38 @@ function nextAttField(empId){const a=S.attendance.find(x=>x.id===`${today()}_${e
 /* ---- geofence: attendance only inside the work location ---- */
 const hav=(a,b,c,d)=>{const R=6371000,t=x=>x*Math.PI/180;const dl=t(c-a),dg=t(d-b);const h=Math.sin(dl/2)**2+Math.cos(t(a))*Math.cos(t(c))*Math.sin(dg/2)**2;return 2*R*Math.asin(Math.sqrt(h))};
 const getPos=()=>new Promise((res,rej)=>{if(!navigator.geolocation)return rej({code:9});navigator.geolocation.getCurrentPosition(res,rej,{enableHighAccuracy:true,timeout:20000,maximumAge:0})});
+async function geoPerm(){try{return (await navigator.permissions.query({name:"geolocation"})).state}catch{return "prompt"}}
+function siteCheck(sites,c){let best=null;for(const st of sites){const d=hav(c.latitude,c.longitude,st.lat,st.lng);if(!best||d-st.r<best.d-best.s.r)best={s:st,d}}
+  const acc=Math.round(c.accuracy||0);return{best,acc,inside:best.d<=best.s.r+Math.min(acc,100),loc:{lat:+c.latitude.toFixed(6),lng:+c.longitude.toFixed(6),acc,dist:Math.round(best.d),site:best.s.name||""}}}
+const fmtDist=m=>m>=1000?(m/1000).toFixed(1)+" كم":m+" متر";
+function locHelp(code){const ios=/iphone|ipad/i.test(navigator.userAgent);
+  return code===1?(ios?"الموقع مرفوض للتطبيق. افتح الإعدادات ← الخصوصية والأمان ← خدمات الموقع ← فعّلها، وبعدين Safari (أو التطبيق) ← «أثناء الاستخدام»، وارجع اضغط «حاول تاني».":"الموقع مرفوض للتطبيق. اضغط على علامة القفل 🔒 جنب العنوان (أو من إعدادات الموبايل ← التطبيقات ← Almaha Holidays/Chrome ← الأذونات ← الموقع) واختار «السماح»، وارجع اضغط «حاول تاني».")
+   :code===2?"الـ GPS مقفول أو مش لاقي إشارة. افتح «الموقع / Location» من الشريط اللي فوق في الموبايل، وارجع اضغط «حاول تاني».":code===9?"الجهاز ده مش بيدعم تحديد الموقع.":"معرفناش نحدد موقعك. اتأكد إن الـ GPS مفتوح وجرّب جنب شباك."}
+/* resolves {loc} when inside, null when outside / cancelled */
+function locateForAttendance(sites){return new Promise(resolve=>{let watch=null,timer=null,quick=null,best=null,done=false,started=0;
+  const stop=()=>{if(watch!=null)navigator.geolocation.clearWatch(watch);watch=null;clearTimeout(timer);clearTimeout(quick);quick=null};
+  const finish=v=>{if(done)return;done=true;stop();resolve(v)};
+  const fail=code=>{stop();sound("err");modal(`<h2>📍 الموقع مش متاح</h2><p>${locHelp(code)}</p><div class="foot"><button class="primary" id="locRetry">🔄 حاول تاني</button><button id="locNo">إلغاء</button></div>`);
+    $("#locRetry").onclick=()=>start();$("#locNo").onclick=()=>{closeModal();finish(null)}};
+  const out=r=>{stop();sound("err");modal(`<h2>❌ خارج نطاق العمل</h2><p>إنت على بُعد <b>${fmtDist(r.loc.dist)}</b> من ${esc(r.loc.site||"مكان العمل")} — المسموح ${r.best.s.r} متر.</p><p class="muted" style="font-size:13px">دقة الموقع ±${r.acc} متر. لو إنت فعلًا في المكتب، اطلع جنب الشباك واضغط «حاول تاني». لو بتشتغل برا المكتب، كلّم المدير.</p><div class="foot"><button class="primary" id="locRetry">🔄 حاول تاني</button><button id="locNo">إغلاق</button></div>`);
+    $("#locRetry").onclick=()=>start();$("#locNo").onclick=()=>{closeModal();finish(null)}};
+  const show=r=>{const el=$("#locMsg");if(el)el.innerHTML=r?`الدقة الحالية ±${r.acc} متر · المسافة ${fmtDist(r.loc.dist)}`:"بنسأل الـ GPS…"};
+  const onPos=p=>{if(done)return;const r=siteCheck(sites,p.coords);if(!best||r.acc<best.acc)best=r;show(r);
+    if(r.inside){stop();closeModal();sound("ok");finish({loc:r.loc,note:`✅ إنت جوه نطاق العمل — ${fmtDist(r.loc.dist)} من ${esc(r.loc.site||"المكتب")}`});return}
+    // clearly outside with a precise reading -> no need to wait
+    if(r.acc<=40&&r.best.d-r.acc>r.best.s.r&&!quick)quick=setTimeout(()=>{if(!done&&best&&!best.inside)out(best)},Math.max(0,3000-(Date.now()-started)))};
+  const onErr=e=>{if(done)return;if(e&&e.code===3)return;fail(e&&e.code)};
+  function start(){if(!navigator.geolocation)return fail(9);best=null;started=Date.now();
+    modal(`<h2>📍 جاري تحديد موقعك…</h2><div style="display:flex;align-items:center;gap:12px;margin:8px 0"><div class="spin" style="width:28px;height:28px;border:3px solid var(--line);border-top-color:var(--brand);border-radius:50%;animation:spin 1s linear infinite"></div><div id="locMsg" class="muted">بنسأل الـ GPS…</div></div><p class="muted" style="font-size:12.5px">لو طلع لك سؤال «السماح بالوصول للموقع» اختار <b>السماح</b>.</p><div class="foot"><button id="locNo">إلغاء</button></div>`);
+    $("#locNo").onclick=()=>{closeModal();finish(null)};
+    try{navigator.geolocation.getCurrentPosition(onPos,()=>{},{enableHighAccuracy:false,timeout:8000,maximumAge:0});
+      watch=navigator.geolocation.watchPosition(onPos,onErr,{enableHighAccuracy:true,timeout:15000,maximumAge:0})}catch{return fail(9)}
+    timer=setTimeout(()=>{if(done)return;if(best){if(best.inside){onPos({coords:{latitude:best.loc.lat,longitude:best.loc.lng,accuracy:best.acc}});return}out(best)}else fail(2)},14000)}
+  geoPerm().then(st=>{if(st==="granted")return start();
+    modal(`<h2>📍 تفعيل الموقع</h2><p>تسجيل الحضور والانصراف مسموح من جوه مكان العمل بس، فلازم التطبيق يعرف موقعك.</p><p class="muted" style="font-size:13px">${st==="denied"?locHelp(1):"اضغط الزرار، ولما يطلع لك سؤال الموقع اختار <b>السماح</b> — الكاميرا هتفتح بعدها على طول."}</p><div class="foot"><button class="primary" id="locGo">📍 ${st==="denied"?"حاول تاني":"السماح وتحديد موقعي"}</button><button id="locNo">إلغاء</button></div>`);
+    $("#locGo").onclick=()=>start();$("#locNo").onclick=()=>{closeModal();finish(null)}})})}
 async function geoGate(emp){const sites=set().sites||[];if(!sites.length||(emp&&emp.anyLoc))return {};
-  let pos;try{busy("جاري تحديد موقعك…");pos=await getPos();busy(null)}catch(err){busy(null);
-    modal(`<h2>📍 لازم تفعّل الموقع</h2><p class="muted">تسجيل الحضور والانصراف مسموح من داخل مكان العمل فقط، فالتطبيق محتاج يعرف موقعك.</p><p class="muted" style="font-size:13px">${err&&err.code===1?"اسمح للتطبيق باستخدام الموقع: من إعدادات الموبايل ← التطبيقات/المتصفح ← الأذونات ← الموقع ← السماح، وفعّل الـ GPS، وجرّب تاني.":"فعّل الـ GPS (الموقع) من أعلى الشاشة، وجرّب تاني في مكان مفتوح أو جنب الشباك."}</p><div class="foot"><button data-act="close">حسنًا</button></div>`);return null}
-  const {latitude:lat,longitude:lng,accuracy:acc}=pos.coords;let best=null;
-  for(const st of sites){const d=hav(lat,lng,st.lat,st.lng);if(!best||d-st.r<best.d-best.s.r)best={s:st,d}}
-  const loc={lat:+lat.toFixed(6),lng:+lng.toFixed(6),acc:Math.round(acc||0),dist:Math.round(best.d),site:best.s.name||""};
-  if(best.d>best.s.r+Math.min(acc||0,100)){modal(`<h2>❌ خارج نطاق العمل</h2><p>إنت على بُعد <b>${loc.dist>=1000?(loc.dist/1000).toFixed(1)+" كم":loc.dist+" متر"}</b> من ${esc(loc.site||"مكان العمل")}. المسموح ${best.s.r} متر.</p><p class="muted" style="font-size:13px">لو إنت فعلًا في المكتب، فعّل الـ GPS واستنى ثواني وجرّب تاني. لو بتشتغل برا المكتب، كلّم المدير.</p><div class="foot"><button data-act="close">حسنًا</button></div>`);return null}
-  return {loc};
-}
+  const r=await locateForAttendance(sites);if(!r)return null;CAMNOTE=r.note||"";return {loc:r.loc}}
 async function punch(emp,r,d,loc){const f=nextAttField(emp.id);if(!f)return{f:null};const tm=nowHM();await saveAtt(emp.id,today(),{[f]:tm,[f+"M"]:"face",[f+"D"]:Math.round(d*1000)/1000,[f+"P"]:r.thumb,[f+"By"]:ME.name,...(loc?{[f+"L"]:loc}:{})});return{f,tm}}
 async function faceSelf(){
   const emp=ME.empId&&S.employees.find(e=>e.id===ME.empId);if(!emp)return toast("حسابك غير مربوط بملف موظف");
@@ -947,7 +976,7 @@ document.addEventListener("submit",async e=>{
 function vDash(){
   const st=set(),m=monthOf(today());let html=hero();
   html+=myToday();
-  if(ME.admin&&st.driveClientId&&(!st.driveLast||Date.now()-new Date(st.driveLast)>864e5))html+=`<div class="card" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between"><div><b>☁️ نسخة الدرايف</b><div class="muted" style="font-size:12.5px">${st.driveLast?"آخر نسخ من أكتر من يوم — ارفع الملفات الجديدة على Google Drive":"لسه معملتش أول نسخ للملفات على Google Drive"}</div></div><button class="primary" data-act="driveSync">نسخ الآن</button></div>`;
+  if(ME.admin&&st.driveLast&&Date.now()-new Date(st.driveLast)>2*864e5)html+=`<div class="card" style="border-color:#e5484d"><b>⚠️ النسخ اليومي على Google Drive متوقف</b><div class="muted" style="font-size:12.5px">آخر نسخ كان ${new Date(st.driveLast).toLocaleDateString("ar-EG")} — افتح سكريبت الدرايف وشغّل setup مرة تانية.</div></div>`;
   if(!can("dashboard"))return html;
   if(!ME.admin){
     const parts=[];
@@ -2055,93 +2084,69 @@ async function formSave(){
   delete data.id;try{await put(col,id,data);toast("تم الحفظ");backTo(back)}catch{}
 }
 
-/* ================= Google Drive: one organized folder with all files ================= */
-const GD_ROOT="Almaha Holidays System",GD_SCOPE="https://www.googleapis.com/auth/drive.file";
-const GD_DIRS={inv:"01 - الفواتير",vch:"02 - الفاوتشرات",pax:"03 - الجوازات والحجوزات",rec:"04 - الإيصالات والمستندات",att:"05 - صور الحضور والانصراف",rep:"06 - التقارير",trip:"07 - صور الرحلات"};
-let GD={tok:null,exp:0,map:null,busy:false,stop:false};
-const gdHash=s=>{let h1=0xdeadbeef,h2=0x41c6ce57;s=String(s);for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return(4294967296*(2097151&h2)+(h1>>>0)).toString(36)};
-const gdName=s=>String(s||"").replace(/[\\/:*?"<>|#\n\r\t]+/g," ").replace(/\s+/g," ").trim().slice(0,120)||"file";
-function gdLoadGis(){return new Promise((res,rej)=>{if(window.google&&google.accounts&&google.accounts.oauth2)return res();const s=document.createElement("script");s.src="https://accounts.google.com/gsi/client";s.async=1;s.onload=()=>res();s.onerror=()=>rej(new Error("تعذر تحميل تسجيل دخول جوجل — اتأكد من النت"));document.head.appendChild(s)})}
-async function gdToken(force){if(!force&&GD.tok&&Date.now()<GD.exp-60000)return GD.tok;const cid=(set().driveClientId||"").trim();if(!cid)throw new Error("نسخ الدرايف مش متفعل — حط Client ID في بيانات الشركة");
-  await gdLoadGis();return await new Promise((res,rej)=>{const c=google.accounts.oauth2.initTokenClient({client_id:cid,scope:GD_SCOPE,prompt:GD.tok?"":"",callback:r=>{if(r.error)return rej(new Error(r.error_description||r.error));GD.tok=r.access_token;GD.exp=Date.now()+(+r.expires_in||3600)*1000;res(GD.tok)},error_callback:e=>rej(new Error(e&&e.type==="popup_closed"?"اتقفلت نافذة جوجل قبل الموافقة":"تعذر فتح نافذة جوجل — اسمح بالنوافذ المنبثقة (Pop-ups)"))});c.requestAccessToken()})}
-async function gdFetch(url,opt={},retry){const t=await gdToken();const r=await fetch(url,{...opt,headers:{...(opt.headers||{}),Authorization:"Bearer "+t}});
-  if(r.status===401&&!retry){GD.tok=null;await gdToken(true);return gdFetch(url,opt,1)}
-  if((r.status===429||r.status>=500)&&(retry||0)<3){await new Promise(z=>setTimeout(z,1500*((retry||0)+1)));return gdFetch(url,opt,(retry||0)+1)}
-  if(!r.ok){let m="";try{m=(await r.json()).error.message}catch{}throw new Error("Drive "+r.status+(m?": "+m:""))}return r}
-async function gdList(){const map=new Map();let pt="";const q=encodeURIComponent("trashed=false and appProperties has { key='almaha' and value='1' }");
-  do{const r=await (await gdFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&pageSize=1000&fields=nextPageToken,files(id,name,mimeType,appProperties)${pt?"&pageToken="+pt:""}`)).json();
-    (r.files||[]).forEach(f=>{const k=f.appProperties&&f.appProperties.k;if(k)map.set(k,{id:f.id,v:f.appProperties.v||"",name:f.name})});pt=r.nextPageToken||""}while(pt);return map}
-async function gdFolder(path){const key="F"+gdHash(path.join("/"));const hit=GD.map.get(key);if(hit)return hit.id;
-  const parent=path.length>1?await gdFolder(path.slice(0,-1)):null;
-  const r=await (await gdFetch("https://www.googleapis.com/drive/v3/files?fields=id",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:gdName(path[path.length-1]),mimeType:"application/vnd.google-apps.folder",...(parent?{parents:[parent]}:{}),appProperties:{almaha:"1",k:key}})})).json();
-  GD.map.set(key,{id:r.id,v:""});return r.id}
-function gdNeed(key,ver){const h=GD.map.get("D"+gdHash(key));return !h||h.v!==String(ver)}
-async function gdPut(path,name,key,ver,getBlobFn){const k="D"+gdHash(key);const h=GD.map.get(k);ver=String(ver);if(h&&h.v===ver)return 0;
-  const blob=await getBlobFn();if(!blob)return 0;const folder=await gdFolder([GD_ROOT,...path]);
-  const meta={name:gdName(name),appProperties:{almaha:"1",k,v:ver}};if(!h)meta.parents=[folder];
-  const bd="almaha"+Math.random().toString(36).slice(2);const body=new Blob([`--${bd}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n`,JSON.stringify(meta),`\r\n--${bd}\r\nContent-Type: ${blob.type||"application/octet-stream"}\r\n\r\n`,blob,`\r\n--${bd}--`]);
-  const r=await (await gdFetch(h?`https://www.googleapis.com/upload/drive/v3/files/${h.id}?uploadType=multipart&fields=id`:"https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",{method:h?"PATCH":"POST",headers:{"Content-Type":"multipart/related; boundary="+bd},body})).json();
-  GD.map.set(k,{id:r.id,v:ver});return 1}
-function dataUrlBlob(u){const m=String(u).match(/^data:([^;,]+)?(;base64)?,(.*)$/);if(!m)return null;const bin=m[2]?atob(m[3]):decodeURIComponent(m[3]);const a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return new Blob([a],{type:m[1]||"image/jpeg"})}
-async function srcBlob(src){if(!src)return null;if(String(src).startsWith("data:"))return dataUrlBlob(src);const m=String(src).match(/_blob\/([\w-]+)/);if(m)return await getBlob(m[1]);return null}
-const csvBlob=rows=>new Blob(["﻿"+rows.map(r=>r.map(x=>{const v=String(x??"");return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v}).join(",")).join("\n")],{type:"text/csv"});
-const extOf=(n,t)=>{const e=String(n||"").split(".").pop();return e&&e.length<=5&&e!==n?e:((t||"").includes("pdf")?"pdf":(t||"").includes("png")?"png":"jpg")};
-/* run a list view with no filters (optionally one month) and capture its table */
-function gdView(key,fn,m,pre){const saved=UI[key];UI[key]={q:"",f:{},from:m?m+"-01":"",to:m?m+"-31":""};const keep={attTab,attMonth,payMonth};
-  try{if(pre)pre();fn();const L=LAST[key];if(!L)return null;const cols=L.o.cols.filter(c=>!c.uiOnly);return{title:L.o.title,cols,rows:L.rows}}catch(e){console.warn("report",key,e);return null}
-  finally{if(saved)UI[key]=saved;else delete UI[key];attTab=keep.attTab;attMonth=keep.attMonth;payMonth=keep.payMonth}}
-function gdRep(v){return{csv:()=>csvBlob([v.cols.map(c=>c.h),...v.rows.map(r=>v.cols.map(c=>c.n?r2(c.t(r)):c.t(r)))]),
-  html:sub=>{const sums=v.cols.map(c=>c.sum?r2(v.rows.reduce((a,r)=>a+(+c.t(r)||0),0)):null);return reportHTML(v.title,sub,repTable(v.cols.map(c=>({h:c.h,n:c.n,int:c.int})),v.rows.map(r=>v.cols.map(c=>c.t(r))),sums.some(x=>x!=null)?sums.map((s,i)=>i===0?"الإجمالي":s):null),v.cols.length>6)},
-  ver:gdHash(JSON.stringify([v.cols.map(c=>c.h),v.rows.map(r=>v.cols.map(c=>c.t(r)))]))}}
-async function driveSync(){if(GD.busy)return;if(!ME.admin)return toast("النسخ للدرايف للمدير بس");
-  GD.busy=true;GD.stop=false;let done=0,fail=0,step="";const prog=(t)=>{step=t;busy(`☁️ ${t} — اترفع ${done} ملف${fail?` · فشل ${fail}`:""}`)};
-  const tryPut=async(...a)=>{if(GD.stop)throw new Error("stop");try{done+=await gdPut(...a)}catch(e){if(String(e.message).startsWith("Drive 40")&&!String(e.message).includes("404"))throw e;fail++;console.warn(e)}};
-  try{prog("تسجيل الدخول لجوجل…");await gdToken();prog("قراءة اللي اترفع قبل كده…");GD.map=await gdList();await gdFolder([GD_ROOT]);
-    // 1) invoices
-    const invs=[...S.invoices].sort((a,b)=>(a.num||0)-(b.num||0));let i=0;
-    for(const inv of invs){i++;const ver=gdHash(JSON.stringify(inv));const key="inv:"+inv.id;if(!gdNeed(key,ver))continue;prog(`الفواتير ${i}/${invs.length}`);
-      await tryPut([GD_DIRS.inv,monthOf(inv.date)||"بدون تاريخ"],`${safeName(inv.no)}_${safeName(cust(inv.customerId).name||"")}_Invoice.pdf`,key,ver,()=>makePdfBlob(invoicePaper(inv),false))}
-    // 2) vouchers
-    const vs=S.vouchers||[];i=0;
-    for(const v of vs){i++;const ver=gdHash(JSON.stringify(v));const key="vch:"+v.id;if(!gdNeed(key,ver))continue;prog(`الفاوتشرات ${i}/${vs.length}`);const d=(v.stays||[])[0]&&v.stays[0].checkIn||v.date||(v.at||"").slice(0,10);
-      await tryPut([GD_DIRS.vch,monthOf(d)||"بدون تاريخ"],`${safeName(v.no)}_${safeName(v.customerName||"")}_Voucher.pdf`.replace(/__+/g,"_"),key,ver,()=>makePdfBlob(vPaper(v),false))}
-    // 3) passports + booking documents by order
-    const pax=(S.travelers||[]).filter(p=>p.asset&&p.asset.assetId);i=0;
-    for(const p of pax){i++;const key="pax:"+p.asset.assetId;if(!gdNeed(key,1))continue;prog(`الجوازات ${i}/${pax.length}`);const nm=[p.givenNames,p.surname].filter(Boolean).join(" ")||"passport";
-      await tryPut([GD_DIRS.pax,"أوردر "+(p.orderNo||"بدون رقم")],`Passport_${safeName(nm)}${p.passportNo?"_"+safeName(p.passportNo):""}.${extOf(p.asset.name,p.asset.contentType)}`,key,1,()=>getBlob(p.asset.assetId))}
-    const of=(S.ofiles||[]).filter(f=>f.assetId);i=0;
-    for(const f of of){i++;const key="of:"+f.assetId;if(!gdNeed(key,1))continue;prog(`المستندات والإيصالات ${i}/${of.length}`);const docs=f.area==="docs"||DOCKINDS.includes(f.kind);
-      await tryPut([docs?GD_DIRS.pax:GD_DIRS.rec,"أوردر "+(f.orderNo||"بدون رقم")],`${FK_EN[f.kind]||safeName(f.kind||"File")}_${f.name||"file"}`,key,1,()=>getBlob(f.assetId))}
-    // 4) attendance photos
-    const at=S.attendance.filter(a=>a.inP||a.outP).sort((a,b)=>(a.date||"").localeCompare(b.date||""));i=0;
-    for(const a of at){i++;for(const f of ["in","out"]){const src=a[f+"P"];if(!src)continue;const ver=gdHash(String(src).slice(-300)+(a[f]||""));const key=`att:${a.id}:${f}`;if(!gdNeed(key,ver))continue;prog(`صور الحضور ${i}/${at.length}`);
-      await tryPut([GD_DIRS.att,monthOf(a.date)||"بدون تاريخ",a.date||"بدون تاريخ"],`${safeName(empName(a.empId)||"موظف")}_${f==="in"?"حضور":"انصراف"}_${String(a[f]||"").replace(":","-")}.jpg`,key,ver,()=>srcBlob(src))}}
-    // 5) trip photo library
-    const tp=(S.vphotos||[]).filter(p=>p.assetId);i=0;
-    for(const p of tp){i++;const key="vp:"+p.assetId;if(!gdNeed(key,1))continue;prog(`صور الرحلات ${i}/${tp.length}`);
-      await tryPut([GD_DIRS.trip,p.city||"عام"],`${safeName(p.caption||p.city||"photo")}_${p.assetId.slice(0,6)}.jpg`,key,1,()=>getBlob(p.assetId))}
-    // 6) monthly reports (PDF + Excel CSV)
-    const months=new Set([monthOf(today()),monthOf(addDays(monthOf(today())+"-01",-1))]);const last=set().driveLast;
-    if(!last){[...S.invoices.map(x=>x.date),...S.attendance.map(x=>x.date),...(S.expenses||[]).map(x=>x.date)].forEach(d=>{if(d)months.add(monthOf(d))})}
-    const REPS=[["invoices","Invoices","فواتير العملاء",vInvoices],["vouchers","Vouchers","الفاوتشرات",vVouchers],["expenses","Expenses","المصروفات",vExpenses],["bills","Supplier_Bills","فواتير الموردين",vBills],
-      ["attm","Attendance","الحضور والانصراف",vAttendance,m=>{attTab="month";attMonth=m},1],["pay","Payroll","الرواتب",vPayroll,m=>{payMonth=m},1]];
-    for(const m of [...months].filter(Boolean).sort()){for(const [k,fn,ar,view,pre,noRange] of REPS){prog(`التقارير ${mLabel(m)} · ${ar}`);
-      const v=gdView(k,view,noRange?"":m,pre?()=>pre(m):null);if(!v||!v.rows.length)continue;const R=gdRep(v);const base=`${fn}_${m}`;
-      await tryPut([GD_DIRS.rep,m],base+".csv",`rep:${k}:${m}:csv`,R.ver,async()=>R.csv());
-      await tryPut([GD_DIRS.rep,m],base+".pdf",`rep:${k}:${m}:pdf`,R.ver,()=>makePdfBlob(R.html(`${mLabel(m)} · عدد السجلات: ${v.rows.length}`),v.cols.length>6))}}
-    for(const [k,fn,view] of [["customers","Customers",vCustomers],["suppliers","Suppliers",vSuppliers],["employees","Employees",vEmployees]]){const v=gdView(k,view);if(!v||!v.rows.length)continue;const R=gdRep(v);prog("قوائم العملاء والموردين والموظفين");
-      await tryPut([GD_DIRS.rep],fn+".csv",`list:${k}`,R.ver,async()=>R.csv())}
-    busy(null);const info={driveLast:new Date().toISOString(),driveBy:ME.name,driveCount:GD.map.size};try{await saveSettings({...S.settings,...info})}catch{}
-    const root=GD.map.get("F"+gdHash(GD_ROOT));
-    modal(`<h2>✅ تم النسخ على Google Drive</h2><p>اترفع <b>${done}</b> ملف جديد/متعدّل${fail?` · <span style="color:var(--danger,#e55)">تعذر ${fail} ملف (هيتجرب تاني المرة الجاية)</span>`:""}.</p><p class="muted" style="font-size:13px">كل حاجة في فولدر واحد اسمه <b dir="ltr">${GD_ROOT}</b> ومتقسم: ${Object.values(GD_DIRS).join(" · ")}. المرة الجاية بيرفع الجديد بس.</p><div class="foot">${root?`<a class="btn primary" style="text-decoration:none;padding:9px 14px;border-radius:10px" href="https://drive.google.com/drive/folders/${root.id}" target="_blank" rel="noopener">فتح الفولدر على الدرايف</a>`:""}<button data-act="close">تمام</button></div>`);sound("ok");
-  }catch(e){busy(null);if(String(e.message)!=="stop")modal(`<h2>❌ النسخ على الدرايف وقف</h2><p>${esc(e.message||String(e))}</p><p class="muted" style="font-size:13px">اللي اترفع محفوظ، ولما تدوس "نسخ الآن" تاني هيكمّل من مكان ما وقف.${step?` (وقف عند: ${esc(step)})`:""}</p><div class="foot"><button data-act="close">تمام</button></div>`)}
-  finally{GD.busy=false;render()}}
-function driveCard(){const s=set();const last=s.driveLast?new Date(s.driveLast).toLocaleString("ar-EG",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"";
-  return `<div class="card"><h3>☁️ نسخ كل الملفات على Google Drive</h3><p class="muted" style="margin:0 0 10px;font-size:12.5px">بيعمل فولدر واحد <b dir="ltr">${GD_ROOT}</b> على الدرايف بتاعك، جواه بالترتيب: ${Object.values(GD_DIRS).map(esc).join(" · ")}. كل مرة بيرفع الجديد والمتعدّل بس.</p>
-   <div class="grid2"><label class="f full">Google OAuth Client ID<input id="s_driveClientId" dir="ltr" value="${esc(s.driveClientId||"")}" placeholder="xxxxxxxx.apps.googleusercontent.com"><small>بيتعمل مرة واحدة من Google Cloud — الخطوات عند Claude</small></label></div>
-   <p class="muted" style="font-size:12.5px;margin:8px 0">${last?`آخر نسخ: <b>${last}</b>${s.driveBy?` بواسطة ${esc(s.driveBy)}`:""}`:"لسه متعملش نسخ قبل كده"}</p>
-   <div class="foot" style="flex-wrap:wrap;gap:8px"><button data-act="driveSave">حفظ الـ Client ID</button><button class="primary" data-act="driveSync" ${s.driveClientId?"":"disabled"}>☁️ نسخ الآن</button></div></div>`}
+/* ================= Google Drive daily backup: the app prepares invoice/voucher PDFs, a Google Apps Script copies everything to Drive every night ================= */
+const PDFQ_T={};
+function pdfqKind(col){return col==="invoices"?"inv":col==="vouchers"?"vch":""}
+function queuePdf(col,id,delay){if(mode!=="db"||!ASSETS||!pdfqKind(col)||!set().driveLast)return;clearTimeout(PDFQ_T[col+id]);PDFQ_T[col+id]=setTimeout(()=>makeQueuedPdf(col,id).catch(e=>console.warn("pdfq",e)),delay==null?4000:delay)}
+async function makeQueuedPdf(col,id){const kind=pdfqKind(col);const rec=(S[col]||[]).find(x=>x.id===id);if(!rec||!window.html2pdf)return;
+  const html=kind==="inv"?invoicePaper(rec):vPaper(rec);const blob=await makePdfBlob(html,false);if(!blob)return;
+  const d=kind==="inv"?rec.date:((rec.stays||[])[0]&&rec.stays[0].checkIn||rec.date||(rec.at||"").slice(0,10));
+  const who=kind==="inv"?(cust(rec.customerId).name||""):(rec.customerName||"");
+  const name=`${safeName(rec.no||id)}${who?"_"+safeName(who):""}_${kind==="inv"?"Invoice":"Voucher"}.pdf`;
+  const qid=`${col}_${id}`;const old=(await DB.collection("pdfq").doc(qid).get().catch(()=>null));
+  const a=await ASSETS.upload(new Blob([blob],{type:"application/pdf"}));
+  await DB.collection("pdfq").doc(qid).set({kind,col,ref:id,no:rec.no||"",name,month:monthOf(d)||"",assetId:a.id,at:new Date().toISOString(),by:ME&&ME.name||""});
+  if(old&&old.exists&&old.data().assetId&&old.data().assetId!==a.id){try{await ASSETS.delete(old.data().assetId)}catch{}}}
+async function pdfqAll(){if(!ME.admin)return;const list=[...S.invoices.map(x=>["invoices",x.id]),...(S.vouchers||[]).map(x=>["vouchers",x.id])];if(!list.length)return toast("مفيش فواتير أو فاوتشرات");
+  let i=0,fail=0;for(const [c,id] of list){i++;busy(`تجهيز PDF ${i} من ${list.length} — سيب الصفحة مفتوحة`);try{await makeQueuedPdf(c,id)}catch(e){fail++;console.warn(e)}}
+  busy(null);toast(`تم تجهيز ${list.length-fail} ملف PDF — هيترفعوا على الدرايف في النسخ الليلي`)}
 
+/* manual full backup: one ZIP with the same folders as the Drive backup */
+const BK_DIRS={inv:"01 - الفواتير",vch:"02 - الفاوتشرات",pax:"03 - الجوازات والحجوزات",rec:"04 - الإيصالات والمستندات",att:"05 - صور الحضور والانصراف",rep:"06 - التقارير",trip:"07 - صور الرحلات"};
+function bkView(key,fn,m,pre){const saved=UI[key];UI[key]={q:"",f:{},from:m?m+"-01":"",to:m?m+"-31":""};const keep={attTab,attMonth,payMonth};
+  try{if(pre)pre();fn();const L=LAST[key];if(!L)return null;return{title:L.o.title,cols:L.o.cols.filter(c=>!c.uiOnly),rows:L.rows}}catch(e){console.warn("report",key,e);return null}
+  finally{if(saved)UI[key]=saved;else delete UI[key];attTab=keep.attTab;attMonth=keep.attMonth;payMonth=keep.payMonth}}
+const bkCsv=v=>"﻿"+[v.cols.map(c=>c.h),...v.rows.map(r=>v.cols.map(c=>c.n?r2(c.t(r)):c.t(r)))].map(r=>r.map(x=>{const t=String(x??"");return /[",\n]/.test(t)?`"${t.replace(/"/g,'""')}"`:t}).join(",")).join("\n");
+async function fullZip(){if(!ME.admin)return;if(!DL)return toast("التحميل غير متاح");const m=($("#bk_month")||{}).value||"";const inM=d=>!m||monthOf(d)===m;
+  let miss=0,n=0;const used=new Set();const nm=p=>{let x=p,i=2;while(used.has(x)){x=p.replace(/(\.[^.\/]+)?$/,q=>`_${i}${q}`);i++}used.add(x);return x};
+  const sn=x=>String(x||"").replace(/[\\/:*?"<>|#\n\r\t]+/g," ").replace(/\s+/g," ").trim().slice(0,100)||"file";
+  try{busy("جاري التجهيز…");if(!window.JSZip)await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js");const z=new JSZip();const R="Almaha Holidays System"+(m?" "+m:"")+"/";
+    const add=(path,blob)=>{if(blob){z.file(R+nm(path),blob);n++}else miss++};
+    const getA=async aid=>{try{const r=await fetch("/_blob/"+aid);if(!r.ok)throw 0;return await r.blob()}catch{return null}};
+    const invs=S.invoices.filter(i=>inM(i.date));let i=0;
+    for(const inv of invs){i++;busy(`الفواتير ${i}/${invs.length}`);try{add(`${BK_DIRS.inv}/${monthOf(inv.date)||"بدون تاريخ"}/${safeName(inv.no)}_${safeName(cust(inv.customerId).name||"")}_Invoice.pdf`,await makePdfBlob(invoicePaper(inv),false))}catch{miss++}}
+    const vd=v=>(v.stays||[])[0]&&v.stays[0].checkIn||v.date||(v.at||"").slice(0,10);const vs=(S.vouchers||[]).filter(v=>inM(vd(v)));i=0;
+    for(const v of vs){i++;busy(`الفاوتشرات ${i}/${vs.length}`);try{add(`${BK_DIRS.vch}/${monthOf(vd(v))||"بدون تاريخ"}/${safeName(v.no)}_${safeName(v.customerName||"")}_Voucher.pdf`,await makePdfBlob(vPaper(v),false))}catch{miss++}}
+    const pax=(S.travelers||[]).filter(p=>p.asset&&p.asset.assetId&&inM(p.at||p.createdAt||""));i=0;
+    for(const p of pax){i++;busy(`الجوازات ${i}/${pax.length}`);add(`${BK_DIRS.pax}/أوردر ${sn(p.orderNo||"بدون رقم")}/Passport_${sn([p.givenNames,p.surname].filter(Boolean).join(" ")||"passport")}${p.passportNo?"_"+sn(p.passportNo):""}.${(p.asset.name||"").split(".").pop()||"jpg"}`,await getA(p.asset.assetId))}
+    const of=(S.ofiles||[]).filter(f=>f.assetId&&inM(f.at||""));i=0;
+    for(const f of of){i++;busy(`المستندات والإيصالات ${i}/${of.length}`);const docs=f.area==="docs"||DOCKINDS.includes(f.kind);add(`${docs?BK_DIRS.pax:BK_DIRS.rec}/أوردر ${sn(f.orderNo||"بدون رقم")}/${FK_EN[f.kind]||sn(f.kind||"File")}_${sn(f.name)}`,await getA(f.assetId))}
+    const at=S.attendance.filter(a=>(a.inP||a.outP)&&inM(a.date));i=0;
+    for(const a of at){i++;busy(`صور الحضور ${i}/${at.length}`);for(const k of ["in","out"]){const src=a[k+"P"];if(!src)continue;let b=null;try{b=await (await fetch(src)).blob()}catch{}
+      add(`${BK_DIRS.att}/${monthOf(a.date)}/${a.date}/${sn(empName(a.empId)||"موظف")}_${k==="in"?"حضور":"انصراف"}_${String(a[k]||"").replace(":","-")}.jpg`,b)}}
+    const tp=(S.vphotos||[]).filter(p=>p.assetId);i=0;
+    for(const p of tp){i++;busy(`صور الرحلات ${i}/${tp.length}`);add(`${BK_DIRS.trip}/${sn(p.city||"عام")}/${sn(p.caption||p.city||"photo")}.jpg`,await getA(p.assetId))}
+    const months=m?[m]:[...new Set([...S.invoices.map(x=>x.date),...S.attendance.map(x=>x.date),...(S.expenses||[]).map(x=>x.date),...(S.bills||[]).map(x=>x.date)].filter(Boolean).map(monthOf))].sort();
+    const REPS=[["invoices","Invoices",vInvoices],["vouchers","Vouchers",vVouchers],["expenses","Expenses",vExpenses],["bills","Supplier_Bills",vBills],["attm","Attendance",vAttendance,x=>{attTab="month";attMonth=x},1],["pay","Payroll",vPayroll,x=>{payMonth=x},1]];
+    for(const mm of months)for(const [k,fn,view,pre,noRange] of REPS){busy(`التقارير ${mLabel(mm)}`);const v=bkView(k,view,noRange?"":mm,pre?()=>pre(mm):null);if(!v||!v.rows.length)continue;
+      add(`${BK_DIRS.rep}/${mm}/${fn}_${mm}.csv`,new Blob([bkCsv(v)],{type:"text/csv"}));
+      try{const sums=v.cols.map(c=>c.sum?r2(v.rows.reduce((a,r)=>a+(+c.t(r)||0),0)):null);add(`${BK_DIRS.rep}/${mm}/${fn}_${mm}.pdf`,await makePdfBlob(reportHTML(v.title,`${mLabel(mm)} · عدد السجلات: ${v.rows.length}`,repTable(v.cols.map(c=>({h:c.h,n:c.n,int:c.int})),v.rows.map(r=>v.cols.map(c=>c.t(r))),sums.some(x=>x!=null)?sums.map((s2,j)=>j===0?"الإجمالي":s2):null),v.cols.length>6),v.cols.length>6))}catch{miss++}}
+    for(const [k,fn,view] of [["customers","Customers",vCustomers],["suppliers","Suppliers",vSuppliers],["employees","Employees",vEmployees]]){const v=bkView(k,view);if(v&&v.rows.length)add(`${BK_DIRS.rep}/${fn}.csv`,new Blob([bkCsv(v)],{type:"text/csv"}))}
+    busy("جاري ضغط الملف…");const blob=await z.generateAsync({type:"blob"},meta=>busy(`جاري ضغط الملف… ${Math.round(meta.percent)}%`));busy(null);
+    await DL.save({filename:`Almaha_Holidays_Backup_${m||today()}.zip`,data:blob});toast(miss?`تم الحفظ (${n} ملف)، وتعذر إضافة ${miss}`:`تم حفظ النسخة — ${n} ملف`)}
+  catch(e){busy(null);toast("تعذر عمل النسخة: "+(e.message||e))}}
+function driveCard(){const s=set();const last=s.driveLast?new Date(s.driveLast):null;const late=last&&Date.now()-last>2*864e5;
+  return `<div class="card"><h3>☁️ النسخ اليومي على Google Drive</h3><p class="muted" style="margin:0 0 10px;font-size:12.5px">كل يوم الساعة 3 الفجر بيتنسخ كل حاجة أوتوماتيك في فولدر واحد <b dir="ltr">Almaha Holidays System</b>: الفواتير والفاوتشرات PDF، الجوازات والحجوزات، الإيصالات، صور الحضور والانصراف، تقارير كل شهر، وصور الرحلات. أي فاتورة أو فاوتشر يتحفظ بيتجهز الـ PDF بتاعه لوحده.</p>
+   <p style="font-size:13.5px;margin:6px 0">${last?`${late?"⚠️ ":"✅ "}آخر نسخ: <b>${last.toLocaleString("ar-EG",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</b>${s.driveCount!=null?` · ${s.driveCount} ملف على الدرايف`:""}${late?` — <span style="color:#e5484d">النسخ اليومي متوقف، افتح سكريبت الدرايف وشغّل setup تاني</span>`:""}`:"⏳ النسخ اليومي لسه متفعّلش — الخطوات عند Claude"}</p>
+   <div style="border-top:1px solid var(--line,#3333);margin-top:10px;padding-top:10px"><b>⬇️ نسخة يدوية</b><p class="muted" style="margin:4px 0 8px;font-size:12.5px">بينزّل ملف ZIP فيه كل حاجة بنفس ترتيب الفولدرات — فكّه وارفع الفولدر على الدرايف.</p>
+   <div class="grid2"><label class="f">الشهر (سيبه فاضي = كل حاجة)<input type="month" id="bk_month"></label></div></div>
+   <div class="foot" style="flex-wrap:wrap;gap:8px"><button class="primary" data-act="fullZip">⬇️ تحميل نسخة كاملة ZIP</button>${s.driveLast?`<button data-act="pdfqAll">📄 تجهيز PDF لكل الفواتير والفاوتشرات القديمة</button>`:""}</div></div>`}
+/* ---- show / hide password ---- */
+function addEyes(root){(root||document).querySelectorAll('input[type=password]:not([data-eye])').forEach(inp=>{inp.dataset.eye="1";
+  const w=document.createElement("span");w.className="pwwrap";inp.parentNode.insertBefore(w,inp);w.appendChild(inp);
+  const b=document.createElement("button");b.type="button";b.className="pweye";b.title="إظهار كلمة السر";b.setAttribute("aria-label","إظهار كلمة السر");b.textContent="👁";
+  b.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();const show=inp.type==="password";inp.type=show?"text":"password";b.textContent=show?"🙈":"👁";b.title=show?"إخفاء كلمة السر":"إظهار كلمة السر";inp.focus()});w.appendChild(b)})}
+new MutationObserver(()=>addEyes()).observe(document.documentElement,{childList:true,subtree:true});document.addEventListener("DOMContentLoaded",()=>addEyes());
 /* ================= events ================= */
 document.addEventListener("change",e=>{const t=e.target;if(t&&t.dataset&&t.dataset.chg==="ccPick"){const x=document.getElementById(t.id+"_x");if(x){x.style.display=t.value==="other"?"":"none";if(t.value==="other")x.focus()}}});
 const confirmBtn=(t,fn)=>{if(t.dataset.sure){fn()}else{t.dataset.sure=1;const o=t.innerHTML;t.textContent="اضغط مرة أخرى للتأكيد";setTimeout(()=>{if(t.isConnected){delete t.dataset.sure;t.innerHTML=o}},3500)}};
@@ -2278,7 +2283,7 @@ document.addEventListener("click",async e=>{
     case "taskNote":{const txt=$("#tk_note").value.trim();if(!txt)return;const tk=S.tasks.find(x=>x.id===id);$("#tk_note").value="";await put("tasks",id,{...tk,notes:[...(tk.notes||[]),{by:ME.name,at:new Date().toISOString(),text:txt}]});document.activeElement.blur();if(mode==="local")taskDetail(id);else setTimeout(refreshOpenDetail,300);break}
     case "attTab":attTab=t.dataset.v;render();break;
     case "markAbsent":confirmBtn(t,async()=>{const list=S.employees.filter(e=>e.status!=="left").filter(e=>{const r=S.attendance.find(x=>x.empId===e.id&&x.date===attDate);return !r||(!r.in&&(!r.status||r.status==="auto"))});for(const e of list)await saveAtt(e.id,attDate,{status:"absent"});toast(`تم تسجيل غياب ${list.length} موظف بدون إذن — غيّر الحالة لمن كان غيابه بإذن`)});break;
-    case "checkin":case "checkout":{const emp=S.employees.find(x=>x.id===t.dataset.emp);const g=await geoGate(emp);if(!g)break;const f=a==="checkin"?"in":"out";
+    case "checkin":case "checkout":{const emp=S.employees.find(x=>x.id===t.dataset.emp);const g=await geoGate(emp);CAMNOTE="";if(!g)break;const f=a==="checkin"?"in":"out";
       await saveAtt(t.dataset.emp,today(),{[f]:nowHM(),[f+"By"]:ME.name,...(g.loc?{[f+"L"]:g.loc}:{})});toast(f==="in"?"تم تسجيل الحضور":"تم تسجيل الانصراف");break}
     case "selfIn":case "selfOut":{const emp=S.employees.find(x=>x.id===ME.empId);const g=await geoGate(emp);if(!g)break;const f=a==="selfIn"?"in":"out";await saveAtt(ME.empId,today(),{[f]:nowHM(),...(g.loc?{[f+"L"]:g.loc}:{})});toast(f==="in"?"تم تسجيل الحضور":"تم تسجيل الانصراف")}break;
     case "mkPay":{const lines=buildPayroll(payMonth);await put("payroll",payMonth,{month:payMonth,status:"draft",lines,total:payTotal(lines)});break}
@@ -2292,8 +2297,8 @@ document.addEventListener("click",async e=>{
     case "editAcc":accForm(S.accounts.find(x=>x.id===id));break;
     case "perm":accDraft.perms[t.dataset.m]=t.dataset.v;accDraft.role="custom";$("#ac_role").value="custom";drawPerms();break;
     case "accSave":accSave();break;
-    case "driveSave":{const v=($("#s_driveClientId").value||"").trim();if(v&&!/\.apps\.googleusercontent\.com$/.test(v))return toast("الـ Client ID لازم يخلص بـ .apps.googleusercontent.com");try{await saveSettings({...S.settings,driveClientId:v});GD.tok=null;toast("تم الحفظ")}catch{}break}
-    case "driveSync":driveSync();break;
+    case "pdfqAll":confirmBtn(t,()=>pdfqAll());break;
+    case "fullZip":fullZip();break;
     case "siteAdd":{const name=($("#site_name").value||"").trim()||"مكان العمل",r=Math.max(30,+$("#site_r").value||150),ll=($("#site_ll").value||"").trim();let lat,lng;
       if(ll){const m=ll.match(/(-?\d+(?:\.\d+)?)\s*[,،]\s*(-?\d+(?:\.\d+)?)/);if(!m)return toast("اكتب الإحداثيات كده: 25.4052, 55.5136");lat=+m[1];lng=+m[2]}
       else{try{busy("جاري تحديد موقعك…");const p=await getPos();busy(null);lat=p.coords.latitude;lng=p.coords.longitude;if(p.coords.accuracy>80)toast(`دقة الموقع ${Math.round(p.coords.accuracy)} م — لو تقدر، جرّب جنب الشباك`)}catch(err){busy(null);return toast(err&&err.code===1?"اسمح للتطبيق باستخدام الموقع من إعدادات الموبايل":"تعذر تحديد الموقع، فعّل الـ GPS")}}
@@ -2355,7 +2360,7 @@ document.addEventListener("change",async e=>{const t=e.target;
   if(t.dataset.lf){if(UI[t.dataset.lf].f[t.dataset.fk]===t.value)return;UI[t.dataset.lf].f[t.dataset.fk]=t.value;render();return}
   if(t.dataset.ld){UI[t.dataset.ld][t.dataset.side]=t.value;render();return}
   if(t.dataset.att){if(!canW("attendance"))return;const k=t.dataset.att;
-    if(!ME.admin&&k!=="status"&&(set().sites||[]).length){const emp=S.employees.find(x=>x.id===t.dataset.emp);const g=await geoGate(emp);if(!g){render();return}}await saveAtt(t.dataset.emp,attDate,k==="status"?{status:t.value}:{[k]:t.value,[k+"M"]:"manual",[k+"P"]:null,[k+"By"]:ME.name});return}
+    if(!ME.admin&&k!=="status"&&(set().sites||[]).length){const emp=S.employees.find(x=>x.id===t.dataset.emp);const g=await geoGate(emp);CAMNOTE="";if(!g){render();return}}await saveAtt(t.dataset.emp,attDate,k==="status"?{status:t.value}:{[k]:t.value,[k+"M"]:"manual",[k+"P"]:null,[k+"By"]:ME.name});return}
   if(t.dataset.pay){const doc=S.payroll.find(p=>p.id===payMonth);const lines=doc.lines.map(l=>({...l}));lines[+t.dataset.i][t.dataset.pay]=+t.value||0;await put("payroll",payMonth,{...doc,lines,total:payTotal(lines)});return}
   if(t.id==="attDate"){attDate=t.value||today();render()}
   if(t.id==="attMonth"){attMonth=t.value||monthOf(today());render()}
