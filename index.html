@@ -423,15 +423,16 @@ function logAct(col,o,n){try{if(!ACT_T[col]||!ME)return;if(col==="accounts"&&o&&
 let actSeen=+(ls.get("erp-act-seen")||0),actKnown=null;
 function actUnread(){return S.activity.filter(a=>a.byId!==(ME&&ME.id)&&Date.parse(a.at)>actSeen).length}
 function actWatch(){ // live alert for the owner when someone else does something
+  setTimeout(tryPendOpen,0);
   const ids=new Set(S.activity.map(a=>a.id));if(actKnown===null||!ME||!ME.admin){actKnown=ids;return}
   const fresh=S.activity.filter(a=>!actKnown.has(a.id)&&a.byId!==ME.id);actKnown=ids;
   const ic2={attendance:"🕘",invoices:"🧾",customers:"👤",vouchers:"🎫",travelers:"🛂",bills:"📦",expenses:"💸",tasks:"✅",ofiles:"📎"};
-  fresh.slice(-3).forEach((a,i)=>setTimeout(()=>{const acc=S.accounts.find(x=>x.id===a.byId);notify(`${a.by}: ${a.title}`,a.text,{icon:ic2[a.col]||"🔔",img:a.photo||(acc&&acc.photo)||"",go:"#activity"})},i*1800));
+  fresh.slice(-3).forEach((a,i)=>setTimeout(()=>{const acc=S.accounts.find(x=>x.id===a.byId);notify(`${a.by}: ${a.title}`,a.text,{icon:ic2[a.col]||"🔔",img:a.photo||(acc&&acc.photo)||"",go:"#open=act:"+encodeURIComponent(a.id)})},i*1800));
 }
 let taskKnown=null;
 function taskWatch(){if(!ME){taskKnown=null;return}const mine=S.tasks.filter(t=>t.assignee===ME.id&&t.status!=="done");const ids=new Set(mine.map(t=>t.id));
   if(taskKnown===null){taskKnown=ids;return}const fresh=mine.filter(t=>!taskKnown.has(t.id)&&t.updatedBy!==ME.name);taskKnown=ids;
-  fresh.slice(-2).forEach(t=>notify("مهمة جديدة ليك ✅",`${t.title||""}${t.due?` · ${dAr(t.due)}`:""}`,{icon:"✅",go:"#tasks"}))}
+  fresh.slice(-2).forEach(t=>notify("مهمة جديدة ليك ✅",`${t.title||""}${t.due?` · ${dAr(t.due)}`:""}`,{icon:"✅",go:"#open=tasks:"+encodeURIComponent(t.id)}))}
 function actWa(a){const st=set();const ph=(st.waNumber||st.phone||"").replace(/\D/g,"");return `https://wa.me/${ph}?text=${encodeURIComponent(`🔔 ${st.name||"Al Maha Holidays"}\n${a.title}\n${a.text}\nبواسطة: ${a.by}\n${new Date(a.at).toLocaleString("ar-EG",{dateStyle:"medium",timeStyle:"short"})}`)}`}
 let actF="all",actDay="";
 function vActivity(){
@@ -440,7 +441,7 @@ function vActivity(){
   const tm=a=>new Date(a.at).toLocaleString("ar-EG",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
   const sel=SEL.act||(SEL.act=new Set());LAST.act={o:{select:{del:x=>delRaw("activity",x)}},rows};const ok=new Set(rows.map(r=>r.id));[...sel].forEach(i=>{if(!ok.has(i))sel.delete(i)});
   return head("سجل النشاط والتنبيهات","كل حركة على البرنامج: مين عملها وإمتى — تظهر لك فورًا كتنبيه وأنت فاتح البرنامج",`<input type="date" id="actDay" value="${actDay}" style="width:auto"><select id="actF" style="width:auto"><option value="all">كل الأنواع</option>${kinds.map(k=>`<option ${actF===k?"selected":""}>${k}</option>`).join("")}</select>`)+
-  `<div class="card">${rows.length?`${selBar("act",sel.size,rows.length,"التنبيهات")}<table class="t"><thead><tr><th style="width:34px"><input type="checkbox" data-act="selAll" data-k="act" ${sel.size&&sel.size===rows.length?"checked":""} title="تحديد الكل" style="width:18px;height:18px"></th><th></th><th>الحركة</th><th>بواسطة</th><th>الوقت</th><th></th></tr></thead><tbody>${rows.map(a=>{const T=ACT_T[a.col]||["",""];return `<tr><td><input type="checkbox" data-act="selRow" data-k="act" data-id="${a.id}" ${sel.has(a.id)?"checked":""} style="width:18px;height:18px"></td><td style="width:56px">${a.photo?`<img class="fthumb" src="${a.photo}" alt="" style="width:48px;height:48px">`:`<span class="pill ${T[1]}">${T[0]}</span>`}</td><td><b>${esc(a.title)}</b><div class="sub">${esc(a.text)}</div></td><td class="muted">${esc(a.by)}</td><td class="muted n" style="white-space:nowrap">${tm(a)}</td><td><a class="ghost sm" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid var(--line);border-radius:8px" href="${actWa(a)}" target="_blank" rel="noopener">واتساب</a></td></tr>`}).join("")}</tbody></table>`:`<div class="empty"><b>لا يوجد نشاط</b>أي تسجيل حضور أو فاتورة أو فاوتشر أو عميل جديد هيظهر هنا.</div>`}</div>`;
+  `<div class="card">${rows.length?`<p class="muted" style="font-size:12.5px;margin:0 0 8px">👆 اضغط على أي تنبيه يفتحلك مكانه</p>${selBar("act",sel.size,rows.length,"التنبيهات")}<table class="t"><thead><tr><th style="width:34px"><input type="checkbox" data-act="selAll" data-k="act" ${sel.size&&sel.size===rows.length?"checked":""} title="تحديد الكل" style="width:18px;height:18px"></th><th></th><th>الحركة</th><th>بواسطة</th><th>الوقت</th><th></th></tr></thead><tbody>${rows.map(a=>{const T=ACT_T[a.col]||["",""];return `<tr class="click" data-act="actRow" data-id="${a.id}"><td><input type="checkbox" data-act="selRow" data-k="act" data-id="${a.id}" ${sel.has(a.id)?"checked":""} style="width:18px;height:18px"></td><td style="width:56px">${a.photo?`<img class="fthumb" src="${a.photo}" alt="" style="width:48px;height:48px">`:`<span class="pill ${T[1]}">${T[0]}</span>`}</td><td><b>${esc(a.title)}</b><div class="sub">${esc(a.text)}</div></td><td class="muted">${esc(a.by)}</td><td class="muted n" style="white-space:nowrap">${tm(a)}</td><td><a class="ghost sm" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid var(--line);border-radius:8px" href="${actWa(a)}" target="_blank" rel="noopener">واتساب</a></td></tr>`}).join("")}</tbody></table>`:`<div class="empty"><b>لا يوجد نشاط</b>أي تسجيل حضور أو فاتورة أو فاوتشر أو عميل جديد هيظهر هنا.</div>`}</div>`;
 }
 function stamp(d){return{...d,updatedAt:new Date().toISOString(),updatedBy:ME?ME.name:""}}
 async function put(col,id,data){
@@ -554,7 +555,7 @@ async function boot(){
       S.loaded=true;render();return}
     S.loaded=false;render();
     const pending=new Set(["settings",...COLS]);
-    const done=k=>{if(pending.delete(k)&&!pending.size)S.loaded=true;restoreSess();render()};
+    const done=k=>{if(pending.delete(k)&&!pending.size){S.loaded=true;setTimeout(tryPendOpen,200)}restoreSess();render()};
     unsub.push(db.doc("settings/company").onSnapshot(s=>{S.settings=s.exists?{...s.data()}:{};done("settings")},()=>done("settings")));
     unsub.push(db.doc("settings/background").onSnapshot(s=>{S.bg=s.exists?(s.data().img||""):"";render()},()=>{}));
     COLS.forEach(c=>unsub.push(db.collection(c).onSnapshot(q=>{S[c]=q.docs.map(d=>({...d.data(),id:d.id}));if(c==="activity")actWatch();if(c==="tasks")taskWatch();done(c)},()=>done(c))));
@@ -778,14 +779,27 @@ function loadFace(){if(FA)return Promise.resolve(FA);if(faLoading)return faLoadi
 /* laptops/desktops: live webcam window instead of the file picker */
 const isDesk=()=>!(window.matchMedia&&matchMedia("(pointer:coarse)").matches)&&!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia);
 let CAMNOTE="";
+/* beauty filter: only the saved photo is retouched — face matching always uses the original picture */
+const BEAUTY_CSS="brightness(1.1) contrast(.94) saturate(1.06) blur(.45px)";
+function beautyOn(){return ls.get("erp-beauty")!=="0"}
+function beautify(cv){const W=cv.width,H=cv.height,x=cv.getContext("2d");
+  const sm=document.createElement("canvas");sm.width=Math.max(8,Math.round(W/7));sm.height=Math.max(8,Math.round(H/7));const sx=sm.getContext("2d");sx.imageSmoothingQuality="high";sx.drawImage(cv,0,0,sm.width,sm.height);
+  x.save();x.globalAlpha=.32;x.imageSmoothingQuality="high";x.drawImage(sm,0,0,W,H);x.restore();
+  const im=x.getImageData(0,0,W,H),d=im.data;
+  for(let i=0;i<d.length;i+=4){let r=d[i],g=d[i+1],b=d[i+2];const l=.299*r+.587*g+.114*b;
+    r=l+(r-l)*1.04;g=l+(g-l)*1.04;b=l+(b-l)*1.04;
+    r+= (255-r)*.13;g+=(255-g)*.12;b+=(255-b)*.10;
+    d[i]=r>255?255:r;d[i+1]=g>255?255:g;d[i+2]=b>255?255:b}
+  x.putImageData(im,0,0);return cv}
 function webcamShot(){return new Promise(async(res,rej)=>{let stream;const note=CAMNOTE;CAMNOTE="";
   try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:1280},height:{ideal:720}},audio:false})}catch(e){return rej(new Error(e&&e.name==="NotAllowedError"?"camdenied":"nocam"))}
   const ov=document.createElement("div");ov.style.cssText="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.82);display:grid;place-items:center;padding:16px";
-  ov.innerHTML=`<div style="background:var(--surface);color:var(--fg);border-radius:16px;padding:16px;max-width:640px;width:100%;display:grid;gap:12px">${note?`<div style="background:var(--ok-soft);color:var(--ok);border-radius:10px;padding:8px 12px;font-weight:600;font-size:14px">${note}</div>`:""}<b style="font-size:17px">📷 بص في الكاميرا</b><video autoplay playsinline muted style="width:100%;border-radius:12px;background:#000;transform:scaleX(-1)"></video><div style="display:flex;gap:10px;justify-content:flex-end"><button class="primary" data-k="shot">التقاط</button><button data-k="no">إلغاء</button></div></div>`;
+  ov.innerHTML=`<div style="background:var(--surface);color:var(--fg);border-radius:16px;padding:16px;max-width:640px;width:100%;display:grid;gap:12px">${note?`<div style="background:var(--ok-soft);color:var(--ok);border-radius:10px;padding:8px 12px;font-weight:600;font-size:14px">${note}</div>`:""}<b style="font-size:17px">📷 بص في الكاميرا</b><video autoplay playsinline muted style="width:100%;border-radius:12px;background:#000;transform:scaleX(-1);${beautyOn()?`filter:${BEAUTY_CSS}`:""}"></video><div style="display:flex;gap:10px;justify-content:flex-end;align-items:center"><button data-k="beauty" style="margin-inline-end:auto">${beautyOn()?"✨ التجميل: شغال":"✨ التجميل: مقفول"}</button><button class="primary" data-k="shot">التقاط</button><button data-k="no">إلغاء</button></div></div>`;
   document.body.appendChild(ov);const v=ov.querySelector("video");v.srcObject=stream;
   const end=()=>{stream.getTracks().forEach(t=>t.stop());ov.remove()};
   ov.addEventListener("click",ev=>{const k=ev.target.closest("[data-k]");if(!k)return;ev.stopPropagation();
     if(k.dataset.k==="no"){end();return rej(new Error("cancel"))}
+    if(k.dataset.k==="beauty"){const on=!beautyOn();ls.set("erp-beauty",on?"1":"0");v.style.filter=on?BEAUTY_CSS:"";k.textContent=on?"✨ التجميل: شغال":"✨ التجميل: مقفول";return}
     const c=document.createElement("canvas");c.width=v.videoWidth||1280;c.height=v.videoHeight||720;c.getContext("2d").drawImage(v,0,0,c.width,c.height);end();
     c.toBlob(b=>b?res(new File([b],"camera.jpg",{type:"image/jpeg",lastModified:Date.now()})):rej(new Error("nocam")),"image/jpeg",.92)})})}
 function pickSelfie(){if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)return webcamShot().catch(e=>{if(e&&e.message==="nocam")return pickSelfieTap();throw e});return pickSelfieTap()}
@@ -808,6 +822,7 @@ async function faceFromFile(file){
   if(det.length>1&&det[1].detection.box.area>d.detection.box.area*.5)throw new Error("many");
   const b=d.detection.box,m=Math.max(b.width,b.height)*.35,sx=Math.max(0,b.x-m),sy=Math.max(0,b.y-m),sw=Math.min(c.width-sx,b.width+2*m),sh=Math.min(c.height-sy,b.height+2*m),side=Math.min(sw,sh);
   const t=document.createElement("canvas");t.width=t.height=320;t.getContext("2d").drawImage(c,sx+(sw-side)/2,sy+(sh-side)/2,side,side,0,0,320,320);
+  if(beautyOn())beautify(t);
   return{desc:Array.from(d.descriptor).map(x=>Math.round(x*1e4)/1e4),thumb:t.toDataURL("image/jpeg",.78)};
 }
 const fdist=(a,b)=>{let s=0;for(let i=0;i<a.length;i++){const d=a[i]-b[i];s+=d*d}return Math.sqrt(s)};
@@ -900,7 +915,32 @@ setInterval(()=>{const d=new Date(),t=`${pad(d.getHours())}:${pad(d.getMinutes()
 
 /* ================= shell ================= */
 let view="dashboard",GQ="",menuOpen=false,drawerOpen=false;
-function route(){const h=(location.hash||"").slice(1);view=MODS.some(m=>m.k===h)?h:"dashboard";menuOpen=false;drawerOpen=false;GQ="";render();try{window.scrollTo(0,0)}catch{}}
+let PENDOPEN=null;
+function openFromHash(h){const m=h.match(/^open=([a-z]+):(.+)$/);if(!m)return false;PENDOPEN={col:m[1],id:decodeURIComponent(m[2])};try{history.replaceState(null,"",location.pathname+location.search+"#"+(m[1]==="act"?"activity":"dashboard"))}catch{}setTimeout(tryPendOpen,50);return true}
+function tryPendOpen(){if(!PENDOPEN||!ME||!S.loaded)return;const p=PENDOPEN;
+  if(p.col==="act"){const a=S.activity.find(x=>x.id===p.id);if(!a)return;PENDOPEN=null;actOpen(a);return}
+  PENDOPEN=null;actOpen({col:p.col,ref:p.id})}
+/* open the exact place a notification came from */
+function actOpen(a){const id=a.ref||"";const rec=(S[a.col]||[]).find(x=>x.id===id);
+  const go=(h,fn)=>{const same=location.hash==="#"+h;if(!same)location.hash=h;else{menuOpen=false;render()}if(fn)setTimeout(()=>{try{fn()}catch(e){console.warn(e)}},same?0:150)};
+  const gone=h=>{go(h);toast("العنصر ده اتحذف أو مبقاش موجود")};
+  const ord=r=>encodeURIComponent(okey(r&&r.orderNo));
+  switch(a.col){
+    case "invoices":return rec?go("invoices",()=>{payBox=false;showInvoice(id)}):gone("invoices");
+    case "customers":return rec?go("customers",()=>custDetail(id)):gone("customers");
+    case "vouchers":return rec?go("vouchers",()=>vShow(id)):gone("vouchers");
+    case "tasks":return rec?go("tasks",()=>taskDetail(id)):gone("tasks");
+    case "suppliers":return rec?go("suppliers",()=>supDetail(id)):gone("suppliers");
+    case "bills":return rec?go("bills",()=>{if(canW("bills"))openForm("bills",id)}):gone("bills");
+    case "expenses":return rec?go("expenses",()=>{if(canW("expenses"))openForm("expenses",id)}):gone("expenses");
+    case "employees":return rec?go("employees",()=>{if(canW("employees"))openForm("employees",id)}):gone("employees");
+    case "travelers":return rec&&rec.orderNo?go("docs",()=>docDetail(ord(rec))):rec?go("docs"):gone("docs");
+    case "ofiles":{if(!rec)return gone("docs");const docs=rec.area==="docs"||DOCKINDS.includes(rec.kind);return rec.orderNo?go(docs?"docs":"orders",()=>docs?docDetail(ord(rec)):orderDetail(ord(rec))):go(docs?"docs":"orders")}
+    case "attendance":{const k=id.indexOf("_");if(k>0){attDate=id.slice(0,k);attTab="day"}return go("attendance",()=>{if(a.photo)photoView(a.photo,`${a.title||"الحضور"} — ${a.text||""}`)})}
+    case "payroll":if(id)payMonth=id;return go("payroll");
+    case "accounts":return go("users");
+  }go("activity")}
+function route(){const h0=(location.hash||"").slice(1);if(openFromHash(h0))return route();const h=h0;view=MODS.some(m=>m.k===h)?h:"dashboard";menuOpen=false;drawerOpen=false;GQ="";render();try{window.scrollTo(0,0)}catch{}}
 window.addEventListener("hashchange",route);
 let RENDERING=false;
 function render(){if(RENDERING)return;RENDERING=true;try{renderInner()}finally{RENDERING=false}}
@@ -2299,6 +2339,7 @@ document.addEventListener("click",async e=>{
     case "accSave":accSave();break;
     case "pdfqAll":confirmBtn(t,()=>pdfqAll());break;
     case "fullZip":fullZip();break;
+    case "actRow":{const x=S.activity.find(z=>z.id===id);if(x)actOpen(x);break}
     case "siteAdd":{const name=($("#site_name").value||"").trim()||"مكان العمل",r=Math.max(30,+$("#site_r").value||150),ll=($("#site_ll").value||"").trim();let lat,lng;
       if(ll){const m=ll.match(/(-?\d+(?:\.\d+)?)\s*[,،]\s*(-?\d+(?:\.\d+)?)/);if(!m)return toast("اكتب الإحداثيات كده: 25.4052, 55.5136");lat=+m[1];lng=+m[2]}
       else{try{busy("جاري تحديد موقعك…");const p=await getPos();busy(null);lat=p.coords.latitude;lng=p.coords.longitude;if(p.coords.accuracy>80)toast(`دقة الموقع ${Math.round(p.coords.accuracy)} م — لو تقدر، جرّب جنب الشباك`)}catch(err){busy(null);return toast(err&&err.code===1?"اسمح للتطبيق باستخدام الموقع من إعدادات الموبايل":"تعذر تحديد الموقع، فعّل الـ GPS")}}
