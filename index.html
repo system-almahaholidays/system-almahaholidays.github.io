@@ -607,14 +607,15 @@ const ROLES={
   accountant:{l:"محاسب",perms:{print:"all",trips:"view",dashboard:"view",tasks:"view",docs:"view",vouchers:"view",orders:"edit",invoices:"edit",customers:"edit",bills:"edit",suppliers:"edit",expenses:"edit",employees:"view",attendance:"view",payroll:"edit",vat:"edit"}},
   sales:{l:"موظف مبيعات",perms:{packages:"view",trips:"view",tasks:"view",docs:"edit",vouchers:"edit",orders:"view",invoices:"edit",customers:"edit",suppliers:"view",bills:"view"}},
   hr:{l:"موارد بشرية",perms:{print:"all",tasks:"view",employees:"edit",attendance:"edit",payroll:"edit"}},
-  marketing:{l:"تسويق (ماركتينج)",perms:{mkt:"view",leads:"none"}},
+  marketing:{l:"التسويق",perms:{mkt:"view",leads:"none"}},
   staff:{l:"موظف",perms:{}},
   custom:{l:"مخصص",perms:{}}
 };
 const OWNER_ONLY=["payroll","suppliers","bills","vat","reports","salaries","activity"]; // only the owner/admin, never employees
 function can(k,lvl="view"){if(!ME)return false;if(ME.admin)return true;if(OWNER_ONLY.includes(k))return false;const P=ME.perms||{};let p=P[k];if(k==="trips"&&p==null)p=P.customers;p=p||"none";return lvl==="view"?p!=="none":p==="edit"}
 const canW=k=>can(k,"edit")&&serverCanWrite;
-const visible=k=>can(k)||(ALWAYS.includes(k)&&!(k==="leads"&&ME&&!ME.admin&&(ME.perms||{}).leads==="none"));
+const leadsOff=()=>!!ME&&!ME.admin&&(((ME.perms||{}).leads==="none")||(ME.role==="marketing"&&(ME.perms||{}).leads==null));
+const visible=k=>k==="leads"&&leadsOff()?false:(can(k)||ALWAYS.includes(k));
 const accName=id=>id==="owner"?"المالك":((S.accounts.find(a=>a.id===id)||{}).name||"");
 
 /* ================= boot ================= */
@@ -1053,7 +1054,7 @@ function renderInner(){
   if(view==="activity"&&actUnread()){actSeen=Date.now();ls.set("erp-act-seen",String(actSeen))}
   const st=S.settings;
   try{$("#orderlist").innerHTML=allOrders().map(o=>`<option value="${esc(o.no)}">`).join("")}catch{}
-  const cnt={trips:S.customers.filter(c=>custStage(c).k==="trip").length,orders:allOrders().filter(o=>ordStatus(o)[2]!=="closed").length,invoices:S.invoices.length,customers:S.customers.length,bills:S.bills.length,suppliers:S.suppliers.length,expenses:S.expenses.length,employees:S.employees.length,tasks:S.tasks.filter(t=>t.status!=="done"&&(can("tasks")?true:t.assignee===ME.id)).length,leads:(S.leads||[]).filter(l=>l.ownerId===ME.id&&leadDue(l)).length||"",requests:(S.requests||[]).filter(r=>r.status==="pending"&&(ME.admin||r.byId===ME.id)).length||""};
+  const cnt={trips:S.customers.filter(c=>custStage(c).k==="trip").length,orders:allOrders().filter(o=>ordStatus(o)[2]!=="closed").length,invoices:S.invoices.length,customers:S.customers.length,bills:S.bills.length,suppliers:S.suppliers.length,expenses:S.expenses.length,employees:S.employees.length,tasks:S.tasks.filter(t=>t.status!=="done"&&(can("tasks")?true:t.assignee===ME.id)).length,leads:(visible("leads")?(S.leads||[]):[]).filter(l=>l.ownerId===ME.id&&leadDue(l)).length||"",requests:(S.requests||[]).filter(r=>r.status==="pending"&&(ME.admin||r.byId===ME.id)).length||""};
   let g="",nav=`<div class="brand">${st.logo?`<img src="${st.logo}" alt="">`:`<div class="mk">${esc((st.name||"ش").trim().charAt(0))}</div>`}<div><b>${esc(st.name||"شركتك")}</b><small>نظام إدارة الشركة</small></div></div>`;
   MODS.filter(m=>visible(m.k)).forEach(m=>{if(m.g!==g){g=m.g;if(g)nav+=`<div class="ng">${g}</div>`}const lbl=m.k==="tasks"&&!can("tasks")?"مهامي":m.k==="attendance"&&!can("attendance")?"حضوري":m.k==="leads"&&!ME.admin?"عملائي":m.k==="requests"&&!ME.admin?"طلباتي":m.l;nav+=`<a href="#${m.k}" class="${view===m.k?"on":""}">${ic(m.i)}<span>${lbl}</span>${cnt[m.k]?`<span class="cnt">${cnt[m.k]}</span>`:""}</a>`});
   nav+=`<div class="side-foot">${mode==="db"?"البيانات محفوظة ومتزامنة":"وضع تجريبي على هذا الجهاز"}</div>`;
@@ -1168,7 +1169,7 @@ function attBtns(emp,a){const req=set().faceRequired,has=faceSet(emp).length;
   return `${has||req?`<button class="primary" data-act="faceSelf">${ic("face")}تسجيل ${lbl} بالوجه</button>`:""}${!req?`<button ${has?"":`class="primary"`} data-act="${!a.in?"selfIn":"selfOut"}">${ic("clock")}${has?"يدوي":`تسجيل ${lbl}`}</button>`:""}`}
 function myToday(){
   const st=set();const parts=[];
-  const fu=(S.leads||[]).filter(l=>l.ownerId===ME.id&&leadDue(l)).sort((a,b)=>(a.followAt||"").localeCompare(b.followAt||""));
+  const fu=(visible("leads")?(S.leads||[]):[]).filter(l=>l.ownerId===ME.id&&leadDue(l)).sort((a,b)=>(a.followAt||"").localeCompare(b.followAt||""));
   if(fu.length)parts.push(`<div class="card"><h3>📞 متابعات العملاء <span class="pill p-bad">${fu.length}</span></h3>${fu.slice(0,6).map(l=>`<div class="click" data-act="leadOpen" data-id="${l.id}" style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);cursor:pointer"><span><b>${esc(l.name||l.phone)}</b> <span class="muted">${esc(l.country||"")}</span></span><span class="${leadDue(l)==="late"?"neg":"muted"}" style="font-size:12.5px">⏰ ${fuTxt(l.followAt)}</span></div>`).join("")}<div style="margin-top:8px"><a href="#leads">كل عملائي ←</a></div></div>`);
   const emp=ME.empId&&S.employees.find(e=>e.id===ME.empId);
   if(emp){const a=S.attendance.find(x=>x.id===`${today()}_${emp.id}`)||{date:today(),empId:emp.id};const s=ATT[attStatus(a,st)];
@@ -1458,7 +1459,7 @@ function accForm(a){
 function drawPerms(){
   const box=$("#ac_perms");if(!box)return;
   if(accDraft.admin){box.innerHTML=`<div class="banner info" style="margin:0">مدير النظام يرى ويعدّل كل الأقسام، ويدير المستخدمين.</div>`;return}
-  box.innerHTML=`<div class="banner info" style="margin:0 0 10px">الرواتب ومرتبات الموظفين والموردين وفواتير الموردين والتكاليف والأرباح والتقارير وإقرار الضريبة <b>لك أنت فقط</b> — لا تظهر لأي موظف مهما كانت صلاحيته.</div><div class="card perm">${MODS.filter(m=>!["users","company","requests",...OWNER_ONLY].includes(m.k)).map(m=>{const p=accDraft.perms[m.k]||"none";return `<span>${m.l}${ALWAYS.includes(m.k)?`<div class="sub">${m.k==="dashboard"?"بدون صلاحية: يرى مهامه وحضوره فقط":m.k==="tasks"?"بدون صلاحية: يرى مهامه فقط":m.k==="leads"?"«بدون» = مخفي تمامًا · «عرض/تعديل» = يشوف عملاءه هو بس":"بدون صلاحية: يسجل حضوره فقط"}</div>`:""}</span><div class="seg">${[["none","بدون"],["view","عرض"],["edit","تعديل"]].map(([k,l])=>`<button type="button" class="${p===k?"on":""}" data-act="perm" data-m="${m.k}" data-v="${k}" ${m.k==="dashboard"&&k==="edit"?"disabled":""}>${l}</button>`).join("")}</div>`}).join("")}</div><div class="card perm" style="margin-top:10px"><span>🖨️ الطباعة والتصدير (PDF / Excel)<div class="sub">«العملاء والعروض» = يطبع العروض والفواتير والفاوتشرات والعملاء بس — مش حضوره ولا طلباته · «الكل» = يطبع كل الأقسام اللي عنده صلاحيتها</div></span><div class="seg">${[["none","بدون"],["clients","العملاء والعروض"],["all","الكل"]].map(([k,l])=>`<button type="button" class="${(accDraft.perms.print||"clients")===k?"on":""}" data-act="perm" data-m="print" data-v="${k}">${l}</button>`).join("")}</div></div>`;
+  box.innerHTML=`<div class="banner info" style="margin:0 0 10px">الرواتب ومرتبات الموظفين والموردين وفواتير الموردين والتكاليف والأرباح والتقارير وإقرار الضريبة <b>لك أنت فقط</b> — لا تظهر لأي موظف مهما كانت صلاحيته.</div><div class="card perm">${MODS.filter(m=>!["users","company","requests",...OWNER_ONLY].includes(m.k)).map(m=>{const p=accDraft.perms[m.k]||(m.k==="leads"&&!accDraft.admin&&accDraft.role!=="marketing"?"view":"none");return `<span>${m.l}${ALWAYS.includes(m.k)?`<div class="sub">${m.k==="dashboard"?"بدون صلاحية: يرى مهامه وحضوره فقط":m.k==="tasks"?"بدون صلاحية: يرى مهامه فقط":m.k==="leads"?"«بدون» = مخفي تمامًا · «عرض/تعديل» = يشوف عملاءه هو بس":"بدون صلاحية: يسجل حضوره فقط"}</div>`:""}</span><div class="seg">${[["none","بدون"],["view","عرض"],["edit","تعديل"]].map(([k,l])=>`<button type="button" class="${p===k?"on":""}" data-act="perm" data-m="${m.k}" data-v="${k}" ${m.k==="dashboard"&&k==="edit"?"disabled":""}>${l}</button>`).join("")}</div>`}).join("")}</div><div class="card perm" style="margin-top:10px"><span>🖨️ الطباعة والتصدير (PDF / Excel)<div class="sub">«العملاء والعروض» = يطبع العروض والفواتير والفاوتشرات والعملاء بس — مش حضوره ولا طلباته · «الكل» = يطبع كل الأقسام اللي عنده صلاحيتها</div></span><div class="seg">${[["none","بدون"],["clients","العملاء والعروض"],["all","الكل"]].map(([k,l])=>`<button type="button" class="${(accDraft.perms.print||"clients")===k?"on":""}" data-act="perm" data-m="print" data-v="${k}">${l}</button>`).join("")}</div></div>`;
 }
 async function accSave(){
   const d=accDraft;const name=$("#ac_name").value.trim(),user=$("#ac_user").value.trim().toLowerCase(),pw=$("#ac_pw").value;
