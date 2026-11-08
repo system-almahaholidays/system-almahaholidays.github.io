@@ -213,6 +213,7 @@ td.n,th.n{text-align:left}
 .busy{position:fixed;inset:0;background:rgba(30,18,8,.55);display:grid;place-items:center;z-index:95;color:#fff;font-weight:600;text-align:center;padding:24px}
 .busy .spin{width:44px;height:44px;border-radius:50%;border:4px solid rgba(255,255,255,.25);border-top-color:#fff;margin:0 auto 14px;animation:sp 0.9s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
+.has-sl{isolation:isolate}.has-sl:not(.kiosk){position:relative}.sl{position:absolute;inset:0;z-index:-1;border-radius:inherit;overflow:hidden;background:#123}.sl i{position:absolute;inset:-2%;background:center/cover no-repeat;opacity:0;transition:opacity 1.6s ease;animation:slz 9s ease-out forwards}.sl i.on{opacity:1}.sl b{position:absolute;inset:0;z-index:1}@keyframes slz{from{transform:scale(1.06)}to{transform:scale(1)}}@media (prefers-reduced-motion:reduce){.sl i{animation:none;transition:none}}
 .kiosk{position:fixed;inset:0;z-index:70;background-size:cover;background-position:center;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:max(24px,env(safe-area-inset-top,0px)) 20px max(24px,env(safe-area-inset-bottom,0px));text-align:center}
 .kiosk .kc{font-family:var(--display);font-size:clamp(52px,14vw,96px);font-weight:600;direction:ltr;line-height:1;font-variant-numeric:tabular-nums}
 .kiosk .kd{opacity:.85;font-size:16px}
@@ -983,6 +984,20 @@ const svgUrl=x=>"data:image/svg+xml;charset=utf-8,"+encodeURIComponent(x);
 const BGS={d:svgUrl(bgSVG(false)),n:svgUrl(bgSVG(true)),dp:svgUrl(bgSVG(false,true)),np:svgUrl(bgSVG(true,true))};
 const isPortrait=()=>{try{return innerWidth<innerHeight*0.9}catch{return false}};
 const isSmall=()=>{try{return innerWidth<700}catch{return false}};
+const SL_N=27,SL_MS=7000;const slSrc=i=>`bg/s${i+1}${isSmall()||isPortrait()?"-m":""}.jpg`;
+const slOn=()=>!S.bg;
+/* sl(ov): slider layer with an overlay gradient; returns "" when a custom background is set */
+const sl=ov=>slOn()?`<div class="sl" data-ov="1"><b style="background:${ov}"></b></div>`:"";
+const slBg=(ov,full)=>slOn()?"":`background-image:${ov},url('${bgUrl(full)}')`;
+const SLC=new Set();function slPre(i){const u=slSrc(i);if(SLC.has(u))return Promise.resolve(u);return new Promise(r=>{const im=new Image();im.onload=im.onerror=()=>{SLC.add(u);r(u)};im.src=u})}
+function slTick(){const n=Math.floor(Date.now()/SL_MS)%SL_N;const els=document.querySelectorAll(".sl");if(!els.length)return;
+ els.forEach(el=>{if(el.dataset.i==String(n))return;const first=el.dataset.i===undefined;el.dataset.i=n;
+  const go=u=>{if(el.dataset.i!=String(n))return;const li=document.createElement("i");li.style.backgroundImage=`url('${u}')`;el.insertBefore(li,el.querySelector("b"));
+   if(first&&SLC.has(u)){li.style.transition="none";li.classList.add("on");requestAnimationFrame(()=>li.style.transition="")}else requestAnimationFrame(()=>requestAnimationFrame(()=>li.classList.add("on")));
+   const old=[...el.querySelectorAll("i")].filter(x=>x!==li);setTimeout(()=>old.forEach(x=>x.remove()),1800)};
+  slPre(n).then(go)});
+ slPre((n+1)%SL_N)}
+setInterval(slTick,500);
 const bgUrl=full=>{if(S.bg)return S.bg;const n=isNight()?"night":"day";return full?`login-${n}${isPortrait()?"-m":""}.jpg`:`hero-${n}${isSmall()?"-m":""}.jpg`};
 let LAST_PORT=null,rzT=null;window.addEventListener("resize",()=>{clearTimeout(rzT);rzT=setTimeout(()=>{const p=isPortrait()+"|"+isSmall();if(LAST_PORT!==null&&p!==LAST_PORT){const a=document.activeElement;if(!(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))){try{render();if(KIOSK)kioskShow()}catch{}}}LAST_PORT=p},250)});LAST_PORT=isPortrait()+"|"+isSmall();
 let LAST_NIGHT=null;
@@ -1127,7 +1142,7 @@ async function faceAdd(id){
 /* kiosk: one office device, employees take a selfie and the system finds who it is */
 let KIOSK=false,kTimer=null;
 function kioskHTML(res){const s=S.settings;const d=new Date();
-  return `<div class="kiosk" style="background-image:linear-gradient(rgba(40,22,6,.55),rgba(40,22,6,.7)),url('${bgUrl(true)}')"><button class="x" data-act="kioskOff">إغلاق جهاز الحضور</button>
+  return `<div class="kiosk has-sl" style="${slBg("linear-gradient(rgba(40,22,6,.55),rgba(40,22,6,.7))",true)}">${sl("linear-gradient(rgba(40,22,6,.55),rgba(40,22,6,.7))")}<button class="x" data-act="kioskOff">إغلاق جهاز الحضور</button>
   ${s.logo?`<img src="${s.logo}" alt="" style="width:64px;height:64px;object-fit:contain;background:#fff;border-radius:14px">`:""}<div><div class="kc" id="kClock">${pad(d.getHours())}:${pad(d.getMinutes())}</div><div class="kd">${dAr(today())}${s.name?` · ${esc(s.name)}`:""}</div></div>
   ${res||`<button class="scan" data-act="kioskScan">${ic("face")}بصمة الوجه</button><div class="kd">اضغط والتقط صورة لوجهك لتسجيل الحضور أو الانصراف</div>`}</div>`}
 function kioskShow(res){$("#layer").innerHTML=kioskHTML(res);clearTimeout(kTimer);if(res)kTimer=setTimeout(()=>{if(KIOSK)kioskShow()},6000)}
@@ -1236,11 +1251,11 @@ const addBtn=(act,txt,extra="")=>`<button class="primary" data-act="${act}" ${ex
 
 /* ================= auth screens ================= */
 function brandMini(){const s={name:"Almaha Holidays",logo:"./icon-192.png",...S.settings};return `<div class="lg">${s.logo?`<img src="${s.logo}" alt="">`:`<div class="mk">${esc((s.name||"ش").trim().charAt(0))}</div>`}<div><h1>${esc(s.name||"نظام إدارة الشركة")}</h1><p>نظام إدارة الشركة</p></div></div>`}
-function setupHTML(){return `<div class="auth" style="background:linear-gradient(rgba(40,22,6,.1),rgba(40,22,6,.35)),url('${bgUrl(true)}')"><form class="authbox" id="setupForm"><div style="display:flex;justify-content:flex-end;margin:-6px 0 4px">${langBtn()}</div>${brandMini()}<p>أنشئ حساب مدير النظام. ستستخدمه لإضافة الموظفين وتحديد صلاحياتهم.</p>
+function setupHTML(){return `<div class="auth has-sl" style="${slOn()?"background:#123":`background:linear-gradient(rgba(40,22,6,.1),rgba(40,22,6,.35)),url('${bgUrl(true)}')`}">${sl("linear-gradient(rgba(40,22,6,.1),rgba(40,22,6,.35))")}<form class="authbox" id="setupForm"><div style="display:flex;justify-content:flex-end;margin:-6px 0 4px">${langBtn()}</div>${brandMini()}<p>أنشئ حساب مدير النظام. ستستخدمه لإضافة الموظفين وتحديد صلاحياتهم.</p>
   <label class="f">الاسم<input id="su_name" required></label><label class="f">اسم المستخدم<input id="su_user" required autocomplete="username" dir="ltr"></label>
   <label class="f">كلمة المرور<input id="su_pw" type="password" required autocomplete="new-password" dir="ltr"><small>8 أحرف على الأقل</small></label><label class="f">تأكيد كلمة المرور<input id="su_pw2" type="password" required autocomplete="new-password" dir="ltr"></label>
   ${authErr?`<div class="err">${esc(authErr)}</div>`:""}<button class="primary" type="submit">إنشاء الحساب والدخول</button></form></div>`}
-function loginHTML(){return `<div class="auth" style="background:linear-gradient(rgba(40,22,6,.1),rgba(40,22,6,.35)),url('${bgUrl(true)}')"><form class="authbox" id="loginForm"><div style="display:flex;justify-content:flex-end;margin:-6px 0 4px">${langBtn()}</div>${brandMini()}<p>سجّل الدخول بحسابك.</p>
+function loginHTML(){return `<div class="auth has-sl" style="${slOn()?"background:#123":`background:linear-gradient(rgba(40,22,6,.1),rgba(40,22,6,.35)),url('${bgUrl(true)}')`}">${sl("linear-gradient(rgba(40,22,6,.1),rgba(40,22,6,.35))")}<form class="authbox" id="loginForm"><div style="display:flex;justify-content:flex-end;margin:-6px 0 4px">${langBtn()}</div>${brandMini()}<p>سجّل الدخول بحسابك.</p>
   <div id="li_av" style="display:none;flex-direction:column;align-items:center;gap:6px;margin:2px 0 6px"></div>
   <label class="f">اسم المستخدم<input id="li_user" required autocomplete="username" dir="ltr" autocapitalize="none" value="${esc(ls.get("erp-last-user")||"")}"></label><label class="f">كلمة المرور<input id="li_pw" type="password" required autocomplete="current-password" dir="ltr"></label>
   ${authErr?`<div class="err">${esc(authErr)}</div>`:""}<button class="primary" type="submit">دخول</button>
@@ -1303,7 +1318,7 @@ function hero(){
   if(canW("tasks"))qa.push(`<button data-act="newTask">${ic("check")}مهمة</button>`);
   if(canW("attendance"))qa.push(`<button data-act="kiosk">${ic("kiosk")}جهاز الحضور</button>`);
   const open=S.tasks.filter(t=>t.assignee===ME.id&&t.status!=="done").length;
-  return `<div class="hero" style="background-image:linear-gradient(to left,rgba(40,22,6,.7),rgba(40,22,6,.1)),url('${bgUrl()}')"><div class="top"><div><h1>${greet}، ${esc(ME.name)}</h1><p>${esc(S.settings.name||"")}${open?` · لديك ${open} ${open===1?"مهمة مفتوحة":"مهام مفتوحة"}`:""}</p></div><div class="clock"><span id="hClock">${tzHM("Africa/Cairo")}</span><small>🇪🇬 ${LANG==="en"?"Egypt":"مصر"} · ${dAr(today())}</small><small style="margin-top:8px;font-size:15px;font-weight:600">🇦🇪 ${LANG==="en"?"UAE":"الإمارات"} <span id="hClockAE" dir="ltr">${tzHM("Asia/Dubai")}</span></small></div></div><div class="qa">${qa.join("")}</div></div>`;
+  return `<div class="hero has-sl" style="${slBg("linear-gradient(to left,rgba(40,22,6,.7),rgba(40,22,6,.1))")}">${sl("linear-gradient(to left,rgba(40,22,6,.7),rgba(40,22,6,.1))")}<div class="top"><div><h1>${greet}، ${esc(ME.name)}</h1><p>${esc(S.settings.name||"")}${open?` · لديك ${open} ${open===1?"مهمة مفتوحة":"مهام مفتوحة"}`:""}</p></div><div class="clock"><span id="hClock">${tzHM("Africa/Cairo")}</span><small>🇪🇬 ${LANG==="en"?"Egypt":"مصر"} · ${dAr(today())}</small><small style="margin-top:8px;font-size:15px;font-weight:600">🇦🇪 ${LANG==="en"?"UAE":"الإمارات"} <span id="hClockAE" dir="ltr">${tzHM("Asia/Dubai")}</span></small></div></div><div class="qa">${qa.join("")}</div></div>`;
 }
 function attBtns(emp,a){const req=set().faceRequired,has=faceSet(emp).length;
   if(a.in&&a.out)return `<span class="muted">تم تسجيل اليوم</span>`;
@@ -1696,8 +1711,8 @@ function vCompany(){
    ${(s.sites||[]).length?`<table class="t"><tbody>${s.sites.map((x,i)=>`<tr><td><b>${esc(x.name||"موقع")}</b><div class="sub"><a href="https://maps.google.com/?q=${x.lat},${x.lng}" target="_blank" rel="noopener" dir="ltr">${x.lat}, ${x.lng}</a></div></td><td class="n">${x.r} م</td><td>${ed?`<button class="ghost" data-act="siteDel" data-i="${i}">حذف</button>`:""}</td></tr>`).join("")}</tbody></table>`:`<p style="margin:0 0 10px"><span class="pill p-mut">غير مفعّل — التسجيل مسموح من أي مكان</span></p>`}
    ${ed?`<div class="grid2" style="margin-top:10px"><label class="f">اسم الموقع<input id="site_name" placeholder="مكتب عجمان"></label><label class="f">نصف القطر (متر)<input id="site_r" type="number" value="150" min="30"></label><label class="f full">الإحداثيات (اختياري)<input id="site_ll" dir="ltr" placeholder="25.4052, 55.5136 — أو سيبها فاضية واستخدم موقعك الحالي"></label></div><div class="foot" style="margin-top:10px"><button class="primary" data-act="siteAdd">📍 إضافة الموقع</button></div>`:""}</div>
   <div class="card"><h3>صورة الخلفية</h3><p class="muted" style="margin:0 0 10px;font-size:12.5px">تظهر في شاشة الدخول ولوحة التحكم وجهاز الحضور. يفضّل صورة عرضية لوجهة سياحية.</p>
-   <div style="height:120px;border-radius:12px;background:url('${bgUrl()}') center/cover;margin-bottom:10px"></div>
-   ${ed?`<div class="grid2"><label class="f full">رفع صورة<input type="file" id="s_bgFile" accept="image/*"></label></div><div class="foot" style="margin-top:10px"><button data-act="saveBgImg">حفظ الخلفية</button>${S.bg?`<button class="danger" data-act="rmBg">الرجوع للخلفية الافتراضية</button>`:""}</div>`:""}</div></div>`;
+   <div class="has-sl" style="height:120px;border-radius:12px;margin-bottom:10px;${slOn()?"":`background:url('${bgUrl()}') center/cover`}">${sl("transparent")}</div>${slOn()?`<p style="margin:0 0 8px;font-size:12px;color:var(--muted)">الخلفية الحالية: عرض صور متغيّر (${SL_N} صورة) — لو رفعت صورة هنا هتبقى هي الخلفية الثابتة.</p>`:""}
+   ${ed?`<div class="grid2"><label class="f full">رفع صورة<input type="file" id="s_bgFile" accept="image/*"></label></div><div class="foot" style="margin-top:10px"><button data-act="saveBgImg">حفظ الخلفية</button>${S.bg?`<button class="danger" data-act="rmBg">الرجوع لعرض الصور المتغيّر</button>`:""}</div>`:""}</div></div>`;
 }
 
 /* ================= customer trip status (automatic) ================= */
@@ -3300,7 +3315,7 @@ document.addEventListener("click",async e=>{
     case "kioskScan":kioskScan();break;
     case "install":menuOpen=false;render();modal(`<h2>إضافة النظام للشاشة الرئيسية</h2><div class="grid2"><div class="card"><h3>آيفون (Safari)</h3><p class="muted" style="margin:0">افتح رابط النظام، اضغط زر المشاركة أسفل الشاشة، ثم اختر «إضافة إلى الشاشة الرئيسية».</p></div><div class="card"><h3>أندرويد (Chrome)</h3><p class="muted" style="margin:0">افتح رابط النظام، اضغط النقاط الثلاث أعلى الشاشة، ثم اختر «إضافة إلى الشاشة الرئيسية».</p></div></div><p class="muted" style="font-size:12.5px">هتظهر أيقونة تفتح النظام مباشرة زي التطبيق. </p><div class="foot"><button class="primary" data-act="close">تم</button></div>`);break;
     case "saveBgImg":{const f=$("#s_bgFile").files[0];if(!f)return toast("اختر صورة أولًا");try{busy("جاري تجهيز الصورة…");const u=await readBg(f);busy(null);await saveBg(u);toast("تم حفظ الخلفية")}catch{busy(null);toast("تعذر حفظ الصورة")}break}
-    case "rmBg":await saveBg("");toast("تم الرجوع للخلفية الافتراضية");break;
+    case "rmBg":await saveBg("");toast("رجعت الخلفية لعرض الصور المتغيّر");break;
     case "tripStage":{const u=UI.trips;u.f.st=u.f.st===t.dataset.v?"":t.dataset.v;render();break}
     case "orderPdf":orderPdf(id);break;
     case "orderZip":orderZip(id);break;
