@@ -2074,14 +2074,23 @@ const custById=id=>S.customers.find(c=>c.id===id)||null;
 const custByName=n=>n?S.customers.find(c=>(c.name||"").trim().toLowerCase()===String(n).trim().toLowerCase())||null:null;
 const tripByNo=no=>(S.trips||[]).find(t=>okey(t.orderNo)===okey(no))||null;
 function ctxInv(inv){if(!inv)return null;const c=custById(inv.customerId)||custByName(inv.customerName)||{};const k=invCalc(inv);const cur=docCur(inv);
-  return{doc:"الفاتورة",docEn:"Invoice",no:inv.no,name:inv.customerName||c.name||"",phone:c.phone||(tripByNo(ordInv(inv))||{}).phone||"",email:c.email||"",total:`${money(k.total)} ${cur}`,balance:k.due>0.004?`${money(k.due)} ${cur}`:""}}
-function ctxV(v){if(!v)return null;const t=tripByNo(v.orderNo)||{};const c=custByName(v.customerName)||{};return{doc:"الفاوتشر",docEn:"Voucher",no:v.no,name:v.customerName||c.name||t.name||"",phone:c.phone||t.phone||"",email:c.email||""}}
+  return{doc:"الفاتورة",docEn:"Invoice",no:inv.no,name:inv.customerName||c.name||"",phone:c.phone||(tripByNo(ordInv(inv))||{}).phone||"",email:c.email||"",total:`${money(k.total)} ${cur}`,balance:k.due>0.004?`${money(k.due)} ${cur}`:"",trip:tripTxtInv(inv)}}
+function ctxV(v){if(!v)return null;const t=tripByNo(v.orderNo)||{};const c=custByName(v.customerName)||{};return{doc:"الفاوتشر",docEn:"Voucher",no:v.no,name:v.customerName||c.name||t.name||"",phone:c.phone||t.phone||"",email:c.email||"",trip:tripTxtV(v)}}
 function ctxO(o){if(!o)return null;const inv=(o.inv||[])[0];const b=inv?ctxInv(inv):{};return{...b,doc:"ملخص الملف",docEn:"Summary",no:o.no}}
 function ctxC(c){return c?{doc:"كشف الحساب",docEn:"Statement",no:"",name:c.name||"",phone:c.phone||"",email:c.email||""}:null}
 function ctxE(l){const e=S.employees.find(x=>x.id===l.empId)||{};return{doc:"قسيمة الراتب",docEn:"Payslip",no:"",name:l.name||e.name||"",phone:e.phone||"",email:e.email||""}}
 const TPL_WA="مرحبًا {name} 👋\nمرفق {doc} {no} من {company}.\n{total}\nلأي استفسار تواصل معنا على {phone}.\nشكرًا لاختياركم {company} ✈️";
 const TPL_SUB="{doc} {no} — {company}";
 const TPL_BODY="مرحبًا {name}،\n\nمرفق {doc} {no}.\n{total}\n\nلأي استفسار تواصل معنا على {phone} أو بالرد على هذا الإيميل.\n\nمع تحيات،\n{company}";
+const aiOn=()=>!!((typeof SAMPLE!=="undefined"&&SAMPLE)||(set().aiKey||"").trim());
+const aiRulesTxt=extra=>[set().aiRules,extra].map(x=>String(x||"").trim()).filter(Boolean).join("\n");
+/* plain-text trip summaries the AI uses to write client messages */
+function tripTxtV(v){if(!v)return"";const st=(v.stays||[]).filter(s=>s.hotel);const days=(v.days||[]).filter(d=>d.title||d.text);
+  return[`Guests: ${+v.adults||0} adults${+v.children?`, ${v.children} children`:""}${+v.infants?`, ${v.infants} infants`:""}`,`Service: ${VSVC_EN[v.service]||""}`,...st.map(s=>`Hotel: ${s.hotel} (${s.city||""}) ${s.checkIn||""} to ${s.checkOut||""}, ${s.board||""}${s.room?", "+s.room:""}`),...days.map(d=>`Day ${d.day} (${d.date}, ${d.city||""}): ${d.title||""}${d.text?" — "+String(d.text).slice(0,180):""}`)].join("\n")}
+function tripTxtQ(q){if(!q)return"";const hs=(q.hotels||[]).filter(h=>h.name);
+  return[`Country: ${q.country||""}${q.cities?` (${q.cities})`:""}`,q.from?`Dates: ${q.from} to ${q.to||""} (${qNights(q)} nights)`:`Nights: ${qNights(q)}`,`Travelers: ${+q.adults||0} adults${+q.children?`, ${q.children} children`:""}`,...hs.map(h=>`Hotel: ${h.name} (${h.city||""})${h.nights?` ${h.nights} nights`:""}`),...(q.days||[]).filter(d=>d.title).map((d,i)=>`Day ${i+1}: ${d.title}${d.desc?" — "+String(d.desc).slice(0,150):""}`),`Includes: ${qIncludes(q).join("; ")}`].join("\n")}
+function tripTxtInv(inv){const c=custById(inv.customerId)||{};const v=(typeof vouchersFor==="function"?vouchersFor(ordInv(inv)):[])[0];
+  return[c.destination?`Destination: ${c.destination}`:"",(inv.travelDate||c.travelDate)?`Travel: ${inv.travelDate||c.travelDate} to ${inv.returnDate||c.returnDate||""}`:"",...(inv.items||[]).filter(i=>i.desc).map(i=>`Item: ${String(i.desc).slice(0,200)} x${i.qty||1}`),v?tripTxtV(v):""].filter(Boolean).join("\n")}
 const TPL_WA_HELLO="أهلاً {name} 👋\nمعاك {company} — إزاي نقدر نساعدك؟";
 const TPL_WA_PAY="أهلاً {name} 👋\nبنفكّرك إن المتبقي على {doc} رقم {no} هو {balance}.\nبعد التحويل ابعتلنا صورة الإيصال هنا. شكرًا ليك 🙏\n{company}";
 const TPL_WA_TRIP="أهلاً {name} ✈️\nرحلتك إلى {dest} يوم {date} — فاضل {days}.\nلو محتاج أي حاجة قبل السفر إحنا معاك.\n{company}";
@@ -2100,6 +2109,18 @@ function ccVal(id){const s=$("#"+id);if(!s)return"";return (s.value==="other"?((
 function waNum(p,cc0){let d=String(p||"").replace(/[^\d+]/g,"");if(!d)return"";if(d.startsWith("+"))return d.slice(1);if(d.startsWith("00"))return d.slice(2);const cc=String(cc0||set().waCode||"971").replace(/\D/g,"");if(d.startsWith("0"))d=d.slice(1);return cc0?cc+d:(d.length<=10?cc+d:d)}
 async function prevBlob(){const p=PREV;if(p.kind==="pdf"){if(!window.html2pdf)throw new Error("pdf");return await makePdfBlob(p.html,p.land)}
   const text="\ufeff"+p.rows.map(r=>r.map(x=>{const v=String(x??"");return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v}).join(",")).join("\n");return new Blob([text],{type:"text/csv"})}
+async function sendAI(how){const p=PREV;if(!p)return;const c={doc:"الملف",...(p.to||{})};const st=set();const wa=how==="wa";const say=x=>{const e=$("#sd_aist");if(e)e.textContent=x};say("⏳ الذكاء الاصطناعي بيكتب الرسالة…");
+  const prompt=`Write a ${wa?"WhatsApp message":"customer e-mail"} in warm, professional Arabic (simple Egyptian-friendly wording) from the travel agency "${st.name||"Almaha Holidays"}" to the client "${c.name||""}", sent together with the attached ${c.docEn||"document"} (${c.doc}${c.no?" "+c.no:""}).
+Include a SHORT attractive brief of the trip (destination, dates, hotels and 2-4 highlights of the program) based ONLY on the data below — do not invent anything.${c.total?`
+Amount: ${c.total}${c.balance?`, remaining balance: ${c.balance}`:""}.`:""}
+${wa?"Keep it under 110 words, a few emojis are fine, short lines.":"Keep the body under 170 words, polite greeting and sign-off with the agency name and phone "+(st.phone||"")+"."}
+Trip data:
+${c.trip||"(no details)"}
+${aiRulesTxt(($("#sd_ain")||{}).value)?`AGENCY INSTRUCTIONS — follow them:
+${aiRulesTxt(($("#sd_ain")||{}).value)}
+`:""}Reply ONLY with JSON: {"message":"..."${wa?"":',"subject":"..."'}}`;
+  try{const j=await aiJSON(prompt);const m=j&&(j.message||j.body||j.text);if(!m)throw new Error("رد فاضي");const t=$("#sd_msg");if(t)t.value=String(m).trim();if(!wa&&j.subject&&$("#sd_sub"))$("#sd_sub").value=String(j.subject).trim();say("✓ اتكتبت — تقدر تعدّل عليها قبل الإرسال")}
+  catch(e){say("❌ "+(e.message||"تعذرت الكتابة")+" — الرسالة العادية موجودة")}}
 function sendDlg(how){const p=PREV;if(!p)return;const c={doc:p.kind==="csv"?"التقرير":"الملف",...(p.to||{})};const st=set();const wa=how==="wa";
   modal(`<h2>${wa?"🟢 إرسال واتساب":"✉️ إرسال إيميل"}</h2><p class="muted" style="margin-top:0" dir="ltr">${esc(p.filename)}</p><div class="grid2">
    ${wa?(()=>{const sp=ccSplit(c.phone);const cc=sp?sp.cc||"other":String(st.waCode||"971");const num=sp?sp.num:String(c.phone||"").replace(/[^\d]/g,"").replace(/^0+/,"");return `<label class="f">مفتاح الدولة${ccSelect("sd_cc0",sp&&!sp.cc?"":cc)}</label>
@@ -2109,8 +2130,10 @@ function sendDlg(how){const p=PREV;if(!p)return;const c={doc:p.kind==="csv"?"ا�
         <label class="f full">نسخة (CC)<input id="sd_cc" dir="ltr" value="${esc(st.mailCc||"")}"></label>
         <label class="f full">الموضوع<input id="sd_sub" value="${esc(fillTpl(st.mailSubject||TPL_SUB,c))}"></label>
         <label class="f full">الرسالة<textarea id="sd_msg" rows="7">${esc(fillTpl(st.mailBody||TPL_BODY,c))}</textarea></label>`}</div>
+   ${aiOn()?`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:2px 0 6px"><input id="sd_ain" placeholder="تعليمات للذكاء الاصطناعي (اختياري) — مثال: أسلوب رسمي، فكّره بموعد الدفع" style="flex:1;min-width:180px"><button type="button" data-act="sendAI" data-how="${how}">✨ اكتب الرسالة بالذكاء الاصطناعي</button></div><div id="sd_aist" class="muted" style="font-size:12px;margin-bottom:6px"></div>`:""}
    <p class="muted" style="font-size:12.5px">${canShareFiles()?"هيفتحلك قايمة المشاركة: اختار <b>"+(wa?"واتساب":"Gmail أو البريد")+"</b> والملف هيكون مرفق لوحده.":"الملف هينزل على الجهاز، و"+(wa?"واتساب":"الإيميل")+" هيفتح بالرسالة جاهزة — <b>اسحب الملف اللي نزل جوه "+(wa?"المحادثة":"الإيميل")+"</b>."}</p>
-   <div class="foot"><button class="primary" data-act="sendGo" data-how="${how}">${wa?"إرسال واتساب":"إرسال إيميل"}</button><button data-act="sendBack">رجوع</button></div>`)}
+   <div class="foot"><button class="primary" data-act="sendGo" data-how="${how}">${wa?"إرسال واتساب":"إرسال إيميل"}</button><button data-act="sendBack">رجوع</button></div>`);
+  if(aiOn()&&c.trip&&set().aiAutoMsg!==false)sendAI(how)}
 const canShareFiles=()=>{try{return !!(navigator.canShare&&navigator.canShare({files:[new File(["x"],"x.pdf",{type:"application/pdf"})]}))&&matchMedia("(pointer:coarse)").matches}catch{return false}};
 async function sendGo(how){const p=PREV;if(!p)return;const st=set();const to=($("#sd_to")||{}).value||"",msg=($("#sd_msg")||{}).value||"";
   let blob;try{busy("جاري تجهيز الملف…");blob=await prevBlob();busy(null)}catch{busy(null);return toast("تعذر تجهيز الملف")}
@@ -2153,14 +2176,21 @@ const nightsOf=(a,b)=>a&&b&&b>a?dayDiff(a,b):0;
 function nextVchNo(){let m=1000;(S.vouchers||[]).forEach(v=>{const n=+String(v.no||"").replace(/\D/g,"");if(n>m)m=n});return "VCH-"+(m+1)}
 function vPlan(v){if(Array.isArray(v.plan)&&v.plan.length)return v.plan;const st=(v.stays||[]).filter(s=>s.checkIn&&s.checkOut).sort((a,b)=>a.checkIn.localeCompare(b.checkIn));if(!st.length)return[];
   const out=[];st.forEach((s,i)=>{let d=nightsOf(s.checkIn,s.checkOut);if(i===0)d-=1;if(d>0)out.push({city:s.city,days:d,kind:v.service==="package"?"tour":(v.service==="car"?"tour":"free")})});return out}
+/* default text for arrival / departure / hotel-change days: airport ↔ hotel transfers and the move between hotels */
+function vDef(v,type,cur,prev,city){const car=v.service==="car";const st=(v.stays||[]).filter(s=>s.checkIn&&s.checkOut).sort((a,b)=>a.checkIn.localeCompare(b.checkIn));
+  if(type==="arrival"){const h=cur||st[0]||{};const c=h.city||city||"";return{title:`Arrival${c?" in "+c:""}`,text:car?`Arrival at ${c||"the"} airport. Pick up your rental car and drive to ${h.hotel||"your hotel"}. Check-in and rest of the day at leisure.`:`Arrival at ${c||"the"} airport. Meet & greet by our representative and private transfer to ${h.hotel||"your hotel"}. Check-in and rest of the day at leisure.`}}
+  if(type==="departure"){const h=prev||st[st.length-1]||{};const c=h.city||city||"";return{title:"Departure",text:car?`After breakfast, check out from ${h.hotel||"the hotel"} and drive to ${c||"the"} airport to return the car for your departure flight.`:`After breakfast, check out from ${h.hotel||"the hotel"} and private transfer to ${c||"the"} airport for your departure flight.`}}
+  if(type==="move"&&prev&&cur){const other=cur.city&&cur.city!==prev.city?` in ${cur.city}`:"";return{title:`Transfer to ${cur.city||cur.hotel||city}`,text:`After breakfast, check out from ${prev.hotel||"the hotel"} and ${car?"drive":"private transfer"} to ${cur.hotel||"the next hotel"}${other}. Check-in and rest of the day at leisure.`}}
+  return null}
 function vchDays(v){
   const st=(v.stays||[]).filter(s=>s.checkIn&&s.checkOut).sort((a,b)=>a.checkIn.localeCompare(b.checkIn));if(!st.length)return[];
   const start=st[0].checkIn,end=st[st.length-1].checkOut,n=dayDiff(start,end);const old=new Map((v.days||[]).map(d=>[d.date,d]));const out=[];
   const plan=vPlan(v);const seq=[];plan.forEach(p=>{for(let k=0;k<(+p.days||0);k++)seq.push(p)});
   for(let i=0;i<=n&&i<60;i++){const date=addDays(start,i);const cur=st.find(s=>s.checkIn<=date&&date<s.checkOut);const prev=st.find(s=>s.checkOut===date);const pl=seq[i-1];const plx=i===0?seq[0]:i===n?seq[seq.length-1]:pl;const noTour=plx?plx.kind==="free":v.service!=="package";
     const city=(i>0&&i<n&&pl&&pl.city)||(cur||prev||{}).city||"";let type=i===0?"arrival":i===n?"departure":(prev&&cur&&prev!==cur?"move":(pl?(pl.kind==="free"?"free":"tour"):(v.service==="package"?"tour":"free")));
-    const o=old.get(date);out.push({day:i+1,date,city:o&&o.cityEdited?o.city:city,cityEdited:o&&o.cityEdited,type:o&&o.typeEdited?o.type:type,typeEdited:o&&o.typeEdited,
-      from:prev&&cur&&prev!==cur?prev:null,to:cur&&prev!==cur?cur:null,stay:cur||null,noTour,title:o?o.title||"":"",text:o?o.text||"":"",photos:o&&o.photos||[],overnight:o&&o.overnight!=null&&o.overnight!==""?o.overnight:(cur?(cur.city||""):"")})}
+    const o=old.get(date);const fType=o&&o.typeEdited?o.type:type;const fCity=o&&o.cityEdited?o.city:city;const df=vDef(v,fType,cur,prev,fCity);const keep=!!(o&&(o.text||o.title)&&!o.auto);
+    out.push({day:i+1,date,city:fCity,cityEdited:o&&o.cityEdited,type:fType,typeEdited:o&&o.typeEdited,
+      from:prev&&cur&&prev!==cur?prev:null,to:cur&&prev!==cur?cur:null,stay:cur||null,noTour,title:keep?o.title||"":df?df.title:(o?o.title||"":""),text:keep?o.text||"":df?df.text:(o?o.text||"":""),auto:!keep&&!!df,photos:o&&o.photos||[],overnight:o&&o.overnight!=null&&o.overnight!==""?o.overnight:(cur?(cur.city||""):"")})}
   return out;
 }
 let VD=null;
@@ -2196,16 +2226,17 @@ function drawV(){
   <div class="card" style="margin-bottom:10px"><p class="muted" style="margin:0 0 8px;font-size:12.5px">اكتب المدن بالترتيب وعدد أيام كل مدينة (بين يوم الوصول ويوم المغادرة). المدن مبدئيًا متاخدة من الفنادق.</p>
    ${plan.map((p,i)=>`<div style="display:grid;grid-template-columns:30px 1fr 90px 170px 34px;gap:8px;align-items:end;margin-bottom:6px"><b class="muted" style="padding-bottom:8px">${i+1}</b><label class="f">المدينة<input data-vp="${i}" data-k="city" dir="ltr" value="${esc(p.city)}"></label><label class="f">الأيام<input type="number" min="1" data-vp="${i}" data-k="days" value="${+p.days||1}"></label><label class="f">النوع<select data-vp="${i}" data-k="kind"><option value="tour" ${p.kind!=="free"?"selected":""}>جولات</option><option value="free" ${p.kind==="free"?"selected":""}>أيام حرة${v.service==="car"?"":" (بدون سيارة)"}</option></select></label><button class="ghost danger" data-act="vPlanRm" data-i="${i}" ${plan.length>1?"":"disabled"} aria-label="حذف">×</button></div>`).join("")}
    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px"><button class="ghost sm" data-act="vPlanAdd">${ic("plus")}إضافة مدينة</button><span class="${sum===need?"muted":"neg"}" style="font-size:12.5px">مجموع الأيام ${sum} من ${need}${sum===need?"":" — عدّل الأيام عشان تساوي مدة الرحلة"}</span></div></div>`})():""}
-  <div class="card" style="margin-bottom:10px;background:var(--brand-soft);border-color:var(--brand)"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><b>برنامج الرحلة يوم بيوم (${v.days.length} يوم)</b><div id="v_ai" class="muted" style="font-size:12.5px;margin-top:2px">${!v.days.length?"أدخل تواريخ الفنادق عشان أيام البرنامج تظهر.":SAMPLE?"اضغط الزرار والذكاء الاصطناعي هيكتب كل يوم: أهم الأماكن والأنشطة، والتشيك أوت والانتقال بين المدن، والمبيت.":"اكتب تفاصيل كل يوم يدويًا."}</div></div>
-   ${v.days.length&&SAMPLE?`<button class="primary" data-act="vAI">${ic("face")}إنشاء الجولات بالذكاء الاصطناعي</button>`:""}</div></div>
+  <div class="card" style="margin-bottom:10px;background:var(--brand-soft);border-color:var(--brand)"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><b>برنامج الرحلة يوم بيوم (${v.days.length} يوم)</b><div id="v_ai" class="muted" style="font-size:12.5px;margin-top:2px">${!v.days.length?"أدخل تواريخ الفنادق عشان أيام البرنامج تظهر.":aiOn()?"أول وآخر يوم توصيل من وإلى المطار، ويوم تغيير الفندق انتقال للفندق التاني — مكتوبين لوحدهم. اضغط الزرار والذكاء الاصطناعي يكتب الجولات ويحسّنها حسب تعليماتك.":"أول وآخر يوم وأيام تغيير الفندق مكتوبين لوحدهم. لكتابة الجولات بالذكاء الاصطناعي حط مفتاح Gemini في «بيانات الشركة»."}</div></div>
+   ${v.days.length&&aiOn()?`<button class="primary" data-act="vAI">✨ اكتب / حسّن الجولات بالذكاء الاصطناعي</button>`:""}</div>
+   ${v.days.length&&aiOn()?`<label class="f full" style="margin-top:8px">تعليمات للذكاء الاصطناعي (اختياري)<textarea data-vf="aiNote" rows="2" placeholder="مثال: اكتب الجولات بالتفصيل، ركّز على الأماكن العائلية، اذكر المطاعم الحلال، خلّي يوم قبالا فيه تلفريك توفانداغ">${esc(v.aiNote||"")}</textarea><small>بتتحفظ مع الفاوتشر، واضغط الزرار تاني بعد ما تكتبها عشان يعيد الكتابة.</small></label>`:""}</div>
   ${days}
   <label class="f full" style="margin-top:8px">ملاحظات تظهر في الفاوتشر (اختياري)<textarea data-vf="notes" dir="ltr">${esc(v.notes)}</textarea></label>
   <div class="foot"><button class="primary" data-act="vSave">حفظ الفاوتشر</button><button data-act="vPrev">${ic("doc")}معاينة</button><button data-act="vCancel">إلغاء</button></div>`,"wide");
 }
 function vPlanInput(t){const v=VD.v;v.planEdited=true;if(!Array.isArray(v.plan)||!v.plan.length)v.plan=JSON.parse(JSON.stringify(vPlan(v)));const p=v.plan[+t.dataset.vp];if(!p)return;const k=t.dataset.k;p[k]=k==="days"?Math.max(1,+t.value||1):t.value;(v.days||[]).forEach(d=>{d.cityEdited=false;d.typeEdited=false})}
-function vDayInput(t){const i=+t.dataset.vday,k=t.dataset.k;const d=VD.v.days[i];if(!d)return;d[k]=t.value;if(k==="city")d.cityEdited=true;if(k==="type")d.typeEdited=true}
+function vDayInput(t){const i=+t.dataset.vday,k=t.dataset.k;const d=VD.v.days[i];if(!d)return;d[k]=t.value;if(k==="title"||k==="text")d.auto=false;if(k==="city")d.cityEdited=true;if(k==="type")d.typeEdited=true}
 async function vAI(){
-  vSync();const v=VD.v;v.days=vchDays(v);if(!v.days.length||!SAMPLE)return;const hasCar=v.service==="car";const box=$("#v_ai");box.textContent="الذكاء الاصطناعي بيكتب البرنامج… (ممكن ياخد دقيقة)";
+  vSync();const v=VD.v;v.days=vchDays(v);if(!v.days.length||!aiOn())return;const hasCar=v.service==="car";const box=$("#v_ai");box.textContent="الذكاء الاصطناعي بيكتب البرنامج… (ممكن ياخد دقيقة)";
   const stays=v.stays.filter(s=>s.checkIn&&s.checkOut).sort((a,b)=>a.checkIn.localeCompare(b.checkIn));
   const brief={guests:{adults:v.adults,children:v.children,infants:v.infants},service:VSVC_EN[v.service],car:hasCar?v.car:null,package_includes:v.service==="package"?v.incl:null,
     tour_cities_in_order:vPlan(v).map(p=>({city:p.city,days:+p.days,type:p.kind==="free"?"free days":"tours"})),
@@ -2216,25 +2247,29 @@ Rules:
 - One entry per day, in the given order. Keep each description 2-4 sentences.
 - "tour" days: name the most famous sights, activities and experiences in that day's city, as a realistic one-day plan.
 - "move" days (hotel change): start with "After breakfast, check out from <hotel> and ${hasCar?"drive":"transfer"} to <next city>." then "Check in at <new hotel>."${hasCar?"":" The transfer between cities is included."} If "tour_included" is true, mention 1-2 sights on the way or in the new city. If "tour_included" is false, mention ONLY the transfer and check-in (no sightseeing, no tour), then "Rest of the day at leisure."
-- When "tour_included" is false on arrival or departure days, describe ONLY the transfer (stating it is included${["transfer","package"].includes(v.service)?"":" if a transfer is part of the service"}) — no tours or sightseeing.
-- "arrival" day: arrival${["transfer","package"].includes(v.service)?", meet & greet and private transfer to the hotel":" and hotel check-in"}; light evening suggestion.
-- "departure" day: "After breakfast, check out"${["transfer","package"].includes(v.service)?" and transfer to the airport for your departure flight":" and depart"}.
+- When "tour_included" is false on arrival or departure days, describe ONLY the transfer (it is included) — no tours or sightseeing.
+- "arrival" day: arrival at the airport, ${hasCar?"pick up the rental car and drive":"meet & greet and private transfer"} to the first hotel (name it) and check-in; light evening suggestion.
+- "departure" day: "After breakfast, check out from <hotel> and ${hasCar?"drive to the airport to return the car":"private transfer to the airport"} for your departure flight."
 - "free" days: "Free day at leisure"${hasCar?" — explore at your own pace with your rental car":" (no vehicle included)"}; add 2-3 optional suggestions in that city.
 ${hasCar?"- The guests have a rental car: tour days are self-drive suggestions.":""}
 - Do not invent prices, flight numbers, or hotel names that are not given.
 - "overnight" is the city where they sleep that night (empty on departure day).
 Trip data (JSON):
 ${JSON.stringify(brief)}
+${aiRulesTxt(v.aiNote)?`
+AGENCY INSTRUCTIONS — follow them (they override the style rules above, but never invent facts):
+${aiRulesTxt(v.aiNote)}
+`:""}
 Reply with only a JSON array: [{"day":1,"title":"short day title","description":"...","overnight":"City"}]`;
-  try{const arr=await SAMPLE.json(prompt,{modelTier:"default",cache:false,onText:()=>{box.textContent="الذكاء الاصطناعي بيكتب البرنامج…"}});
-    if(!Array.isArray(arr))throw{code:"invalid_json"};arr.forEach(a=>{const d=v.days.find(x=>x.day===+a.day);if(d){d.title=String(a.title||"");d.text=String(a.description||"");if(a.overnight!=null&&d.type!=="departure")d.overnight=String(a.overnight)}});
+  try{let arr=await aiJSON(prompt);if(arr&&!Array.isArray(arr))arr=arr.days||arr.itinerary||Object.values(arr).find(Array.isArray);
+    if(!Array.isArray(arr))throw{code:"invalid_json"};arr.forEach(a=>{const d=v.days.find(x=>x.day===+a.day);if(d){d.title=String(a.title||"");d.text=String(a.description||"");d.auto=false;if(a.overnight!=null&&d.type!=="departure")d.overnight=String(a.overnight)}});
     drawV();const b=$("#v_ai");if(b)b.textContent="تم كتابة البرنامج. راجعه وعدّل أي يوم لو حبيت.";}
-  catch(e){const c=e&&e.code;box.textContent=c==="not_granted"||c==="sampling_disabled"?"الذكاء الاصطناعي غير متاح، اكتب البرنامج يدويًا.":"تعذرت الكتابة بالذكاء الاصطناعي، حاول مرة أخرى أو اكتب يدويًا."}
+  catch(e){const c=e&&e.code;const b=$("#v_ai")||box;b.textContent=c==="not_granted"||c==="sampling_disabled"?"الذكاء الاصطناعي غير متاح، اكتب البرنامج يدويًا.":"تعذرت الكتابة بالذكاء الاصطناعي"+(e&&e.message?` (${e.message})`:"")+" — حاول مرة أخرى أو اكتب يدويًا."}
 }
 async function vSave(){vSync();const v=VD.v;v.days=vchDays(v);
-  if(SAMPLE&&v.days.length&&!v.days.some(d=>(d.text||"").trim())){toast("الذكاء الاصطناعي بيكتب الجولات قبل الحفظ…");await vAI();v.days=vchDays(v)}if(!v.customerName.trim())return toast("اكتب اسم العميل");if(!v.stays.some(s=>s.hotel&&s.checkIn&&s.checkOut))return toast("أدخل فندق وتواريخ الإقامة");
+  if(aiOn()&&v.days.length&&!v.days.some(d=>(d.text||"").trim()&&!d.auto)&&v.days.some(d=>d.type==="tour")){toast("الذكاء الاصطناعي بيكتب الجولات قبل الحفظ…");await vAI();v.days=vchDays(v)}if(!v.customerName.trim())return toast("اكتب اسم العميل");if(!v.stays.some(s=>s.hotel&&s.checkIn&&s.checkOut))return toast("أدخل فندق وتواريخ الإقامة");
   for(const s of v.stays)if(s.checkIn&&s.checkOut&&s.checkOut<=s.checkIn)return toast("تاريخ التشيك أوت لازم يكون بعد التشيك إن");
-  const d=JSON.parse(JSON.stringify(v));d.plan=v.planEdited?vPlan(v):null;d.days=d.days.map(x=>({day:x.day,date:x.date,city:x.city,cityEdited:!!x.cityEdited,type:x.type,typeEdited:!!x.typeEdited,title:x.title,text:x.text,overnight:x.overnight,noTour:!!x.noTour,photos:x.photos||[]}));if(!d.multi)d.stays=d.stays.slice(0,1);
+  const d=JSON.parse(JSON.stringify(v));d.plan=v.planEdited?vPlan(v):null;d.days=d.days.map(x=>({day:x.day,date:x.date,city:x.city,cityEdited:!!x.cityEdited,type:x.type,typeEdited:!!x.typeEdited,title:x.title,text:x.text,auto:!!x.auto,overnight:x.overnight,noTour:!!x.noTour,photos:x.photos||[]}));if(!d.multi)d.stays=d.stays.slice(0,1);
   const id=d.id;delete d.id;if(VD.isNew){d.createdBy=ME.name;d.createdAt=new Date().toISOString()}
   try{await put("vouchers",id,d);toast(`تم حفظ الفاوتشر ${d.no}`);VD=null;setTimeout(()=>vShow(id),60)}catch{}}
 const cityKey=c=>String(c||"").trim().toLowerCase();
@@ -2729,7 +2764,35 @@ function qNew(l){const n={id:uid(),country:l.country||"",cities:"",from:l.travel
   costs:[{type:"flight",supplier:l.airline||"",cost:"",sell:""},{type:"hotel",supplier:l.agent||"",cost:"",sell:""}],
   price:{adult:"",child:"",total:""},show:{adult:true,child:!!(+l.children),total:true},notes:"",status:"draft",createdAt:new Date().toISOString(),by:ME.name};
   n.days=qMakeDays(n);return n}
-function qMakeDays(q,keep=[]){const n=qNights(q)+1;if((!q.from&&!q.nightsN)||n<1)return keep;const AR="الوصول واستقبال المطار",DP="المغادرة والتوصيل للمطار";const out=[];for(let i=0;i<Math.min(n,30);i++){const k=keep[i]||{};let t=k.title||"";if((t===AR&&i!==0)||(t===DP&&i!==n-1))t="";out.push({title:t||(i===0?AR:i===n-1?DP:""),desc:k.desc||""})}return out}
+function qMoves(q){const hs=(q.hotels||[]).filter(h=>h.name||h.city);const mv={};if(hs.length<2)return mv;let acc=0;for(let i=0;i<hs.length-1;i++){acc+=+hs[i].nights||0;if(!(+hs[i].nights))return{};mv[acc]={a:hs[i],b:hs[i+1]}}return mv}
+function qMakeDays(q,keep=[]){const n=qNights(q)+1;if((!q.from&&!q.nightsN)||n<1)return keep;const AR="الوصول واستقبال المطار",DP="المغادرة والتوصيل للمطار";const car=q.mode==="car";const hs=(q.hotels||[]).filter(h=>h.name||h.city);const h0=hs[0]||{},hl=hs[hs.length-1]||{};const MV=qMoves(q);
+  const dA=`الوصول إلى مطار ${h0.city||q.country||""}${car?" واستلام السيارة والتوجه":"، واستقبالكم من مندوبنا والتوصيل"} إلى ${h0.name||"الفندق"} وتسجيل الدخول، وباقي اليوم حر.`;
+  const dD=`بعد الإفطار تسجيل المغادرة من ${hl.name||"الفندق"} و${car?"التوجه للمطار وتسليم السيارة":"التوصيل إلى المطار"} لرحلة العودة.`;
+  const out=[];for(let i=0;i<Math.min(n,30);i++){const k=keep[i]||{};let t=k.title||"",d=k.desc||"";const auto=k.auto;const m=MV[i];
+    if((t===AR&&i!==0)||(t===DP&&i!==n-1)||(auto&&!m&&/^الانتقال من /.test(t))){t="";d=auto?"":d}
+    let def=null;if(i===0)def={t:AR,d:dA};else if(i===n-1)def={t:DP,d:dD};else if(m)def={t:`الانتقال من ${m.a.name||m.a.city} إلى ${m.b.name||m.b.city}`,d:`بعد الإفطار تسجيل المغادرة من ${m.a.name||"الفندق"} و${car?"التوجه بالسيارة":"الانتقال"} إلى ${m.b.name||"الفندق التاني"}${m.b.city&&m.b.city!==m.a.city?` في ${m.b.city}`:""} وتسجيل الدخول، وباقي اليوم حر.`};
+    if(def&&(!t||auto)){out.push({title:def.t,desc:(!d||auto)?def.d:d,auto:true})}else out.push({title:t,desc:d})}return out}
+async function qAIWrite(){qRead();const q=QD.q;const nts=qNights(q);if(!nts&&!(q.days||[]).length)return toast("حدد مدة الرحلة الأول");
+  if((q.days||[]).length!==nts+1)q.days=qMakeDays(q,q.days||[]);const st=$("#q_aist");const say=x=>{const e=$("#q_aist");if(e)e.textContent=x};say("⏳ الذكاء الاصطناعي بيكتب الجولات…");
+  const hs=(q.hotels||[]).filter(h=>h.name||h.city);const MV=qMoves(q);
+  const prompt=`You are a senior travel consultant at an Arab travel agency. Write the day-by-day tour program of a travel offer in clear, attractive Modern Arabic (simple, Egyptian-friendly wording).
+Country: ${q.country||""}${q.cities?`, cities: ${q.cities}`:""}. ${q.from?`Start date: ${q.from}. `:""}Nights: ${nts}. Travelers: ${+q.adults||0} adults${+q.children?`, ${q.children} children`:""}.
+Hotels in order: ${hs.map(h=>`${h.name||"hotel"} (${h.city||""})${h.nights?` ${h.nights} nights`:""}`).join(" → ")||"—"}.
+Transport: ${q.mode==="car"?"self-drive rental car":qTransLine(q)}.
+Rules:
+- Exactly ${nts+1} days, in order.
+- Day 1 = arrival: ${q.mode==="car"?"pick up the rental car at the airport and drive":"airport meet & greet and private transfer"} to the first hotel, check-in.
+- Last day = departure: check-out and ${q.mode==="car"?"drive to the airport and return the car":"transfer from the hotel to the airport"}.
+${Object.keys(MV).length?`- Hotel change days (0-based index): ${Object.entries(MV).map(([i,m])=>`day ${+i+1}: check out from ${m.a.name||m.a.city} and transfer to ${m.b.name||m.b.city}${m.b.city?` in ${m.b.city}`:""}`).join("; ")}. You may add 1 sight on the way.`:""}
+- Other days: a realistic one-day tour in that city with its most famous sights/activities. Title = short tour name; desc = 2-3 sentences.
+- No prices, no invented hotel names or flight numbers.
+Current program (improve it, keep good titles): ${JSON.stringify((q.days||[]).map(d=>({title:d.title,desc:d.desc})))}
+${aiRulesTxt(q.aiNote)?`AGENCY INSTRUCTIONS — follow them:
+${aiRulesTxt(q.aiNote)}
+`:""}Reply ONLY with JSON: {"days":[{"title":"...","desc":"..."}]}`;
+  try{let j=await aiJSON(prompt);let arr=Array.isArray(j)?j:j&&(j.days||Object.values(j).find(Array.isArray));if(!Array.isArray(arr)||!arr.length)throw new Error("رد غير مفهوم");
+    if(!QD)return;QD.q.days=arr.slice(0,Math.max(nts+1,arr.length)).map(a=>({title:String(a.title||"").trim(),desc:String(a.desc||a.description||"").trim()}));qRender(true);setTimeout(()=>say("✓ اتكتبت — راجعها وعدّل اللي انت عايزه"),50)}
+  catch(e){say("❌ "+(e.message||"تعذرت الكتابة"))}}
 function qTransLine(q){if(q.mode==="program"&&qPrivate(q))return "جميع الانتقالات والجولات بسيارة خاصة مع سائق خاص";if(q.mode==="program")return "الانتقالات من وإلى المطار";const v=q.veh||"private";return v==="shared"?"الانتقالات بباص سياحي":v==="van"?"جميع الانتقالات بفان خاص مع سائق":"جميع الانتقالات بسيارة خاصة"}
 function bagTxt(f){const b=f&&f.bag;if(!f||!f.on||!b||!b.on)return"";return [+b.cabin?`حقيبة يد ${+b.cabin} كجم`:"",+b.checked?`أمتعة ${+b.checked} كجم`:""].filter(Boolean).join(" + ")}
 function qIncludes(q){const out=[];const nts=qNights(q);
@@ -2748,7 +2811,7 @@ function qRead(){if(!QD||!$("#q_country"))return;const q=QD.q;const g=id=>{const
   q.hotels=q.hotels.map((h,i)=>({stars:g(`qh_s${i}`),name:g(`qh_n${i}`).trim(),city:g(`qh_c${i}`).trim(),room:g(`qh_r${i}`).trim(),rooms:+g(`qh_k${i}`)||1,board:g(`qh_b${i}`),nights:g(`qh_t${i}`)}));
   const f=q.flight;f.on=ck("qf_on");if($("#qf_air")){f.airline=g("qf_air").trim();f.type=g("qf_type");f.via=g("qf_via").trim();if($("#qf_bagon")){const ob=f.bag||{};f.bag={on:ck("qf_bagon"),cabin:$("#qf_cabin")?g("qf_cabin"):(ob.cabin??7),checked:$("#qf_checked")?g("qf_checked"):(ob.checked??20)}}["out","ret"].forEach(k=>{f[k]={date:g(`qf_${k}_d`),from:g(`qf_${k}_f`).trim(),ft:g(`qf_${k}_ft`),to:g(`qf_${k}_t`).trim(),tt:g(`qf_${k}_tt`)}})}
   const m=document.querySelector('input[name="q_mode"]:checked');q.mode=m?m.value:q.mode;
-  if($("#qd_t0"))q.days=q.days.map((d,i)=>({title:g(`qd_t${i}`).trim(),desc:g(`qd_d${i}`).trim()}));
+  if($("#qd_t0"))q.days=q.days.map((d,i)=>{const t=g(`qd_t${i}`).trim(),ds=g(`qd_d${i}`).trim();return{title:t,desc:ds,...(d.auto&&t===d.title&&ds===d.desc?{auto:true}:{})}});if($("#q_ainote"))q.aiNote=$("#q_ainote").value.trim();
   if($("#q_trd"))q.trDesc=$("#q_trd").value.trim();if($("#q_veh"))q.veh=$("#q_veh").value;if($("#qc_name"))q.car={name:g("qc_name").trim(),ins:g("qc_ins"),deposit:g("qc_dep").trim(),unl:ck("qc_unl"),km:g("qc_km").trim()};
   q.costs=q.costs.map((c,i)=>({type:g(`qx_t${i}`),supplier:g(`qx_s${i}`).trim(),cost:g(`qx_c${i}`),sell:g(`qx_p${i}`),note:g(`qx_n${i}`).trim()}));
   q.price={adult:g("qp_ad"),child:g("qp_ch"),total:g("qp_tot")};if($("#q_cur"))q.cur=g("q_cur");q.show={adult:ck("qs_ad"),child:ck("qs_ch"),total:ck("qs_tot")};
@@ -2773,7 +2836,8 @@ function qRender(keepScroll){const q=QD.q,l=(S.leads||[]).find(x=>x.id===QD.lead
    ${leg("out","✈️ الذهاب")}${leg("ret","✈️ العودة")}`:""}`,f.on?esc(f.airline||""):"بدون")}
   ${sec("prog","④ الجولات / استئجار سيارة / انتقالات فقط",`<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px">${[["program","البرنامج اليومي (جولات)"],["car","استئجار سيارة"],["transfers","انتقالات فقط"],["none","ولا واحد"]].map(([v,t])=>`<label style="display:flex;gap:6px;align-items:center;white-space:nowrap"><input type="radio" name="q_mode" value="${v}" ${q.mode===v?"checked":""} data-chg2="qRe"> ${t}</label>`).join("")}</div>
     ${q.mode==="program"||q.mode==="transfers"?`<label class="f" style="max-width:360px">وسيلة الانتقال المشمولة<select id="q_veh">${Object.entries(QVEH).map(([k,v])=>`<option value="${k}" ${(q.veh||"private")===k?"selected":""}>${v}</option>`).join("")}</select></label>`:""}
-    ${q.mode==="program"?`${q.days.map((d,i)=>`<div style="border:1px dashed var(--line);border-radius:10px;padding:8px 10px;margin-bottom:8px"><div style="display:flex;justify-content:space-between"><b style="font-size:13px">اليوم ${i+1}${q.from?` · ${dAr(addDays(q.from,i))}`:""}</b><button class="sm danger" data-act="qDel" data-k="days" data-i="${i}">حذف</button></div><label class="f">اسم الجولة<input id="qd_t${i}" value="${esc(d.title)}" placeholder="مثال: جولة في المدينة القديمة"></label><label class="f">شرح الجولة<textarea id="qd_d${i}" rows="2">${esc(d.desc)}</textarea></label></div>`).join("")}<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sm" data-act="qAdd" data-k="days">+ يوم</button>${q.from&&q.days.length!==nts+1?`<button class="sm primary" data-act="qGenDays">رتّب الأيام على مدة الرحلة (${nts+1} أيام)</button>`:""}</div>`
+    ${q.mode==="program"?`${q.days.map((d,i)=>`<div style="border:1px dashed var(--line);border-radius:10px;padding:8px 10px;margin-bottom:8px"><div style="display:flex;justify-content:space-between"><b style="font-size:13px">اليوم ${i+1}${q.from?` · ${dAr(addDays(q.from,i))}`:""}</b><button class="sm danger" data-act="qDel" data-k="days" data-i="${i}">حذف</button></div><label class="f">اسم الجولة<input id="qd_t${i}" value="${esc(d.title)}" placeholder="مثال: جولة في المدينة القديمة"></label><label class="f">شرح الجولة<textarea id="qd_d${i}" rows="2">${esc(d.desc)}</textarea></label></div>`).join("")}<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sm" data-act="qAdd" data-k="days">+ يوم</button>${q.from&&q.days.length!==nts+1?`<button class="sm primary" data-act="qGenDays">رتّب الأيام على مدة الرحلة (${nts+1} أيام)</button>`:""}</div>
+     ${aiOn()?`<div style="border:1px solid var(--brand);background:var(--brand-soft);border-radius:10px;padding:10px;margin-top:10px"><label class="f">تعليمات للذكاء الاصطناعي (اختياري)<textarea id="q_ainote" rows="2" placeholder="مثال: اكتب الجولات بالتفصيل وبأسلوب تسويقي، ركّز على الأماكن العائلية">${esc(q.aiNote||"")}</textarea></label><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="sm primary" data-act="qAI">✨ اكتب / حسّن شرح الجولات بالذكاء الاصطناعي</button><span id="q_aist" class="muted" style="font-size:12.5px"></span></div></div>`:""}`
     :q.mode==="transfers"?`<label class="f full">تفاصيل الانتقالات<textarea id="q_trd" rows="3" placeholder="مثال: استقبال من المطار للفندق والعكس بسيارة خاصة، وانتقال بين باكو وقبالا">${esc(q.trDesc||"")}</textarea></label>`:q.mode==="car"?`<div class="grid2">${inp("qc_name","اسم السيارة",q.car.name,'placeholder="مثال: Toyota Camry أو مشابهة"')}<label class="f">نوع التأمين<select id="qc_ins">${QINS.map(x=>`<option ${q.car.ins===x?"selected":""}>${x}</option>`).join("")}</select></label>${inp("qc_dep","الوديعة",q.car.deposit,'placeholder="مثال: 1000 درهم ترجع بعد التسليم"')}<label class="f" style="justify-content:end"><span style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="qc_unl" ${q.car.unl?"checked":""} style="width:18px;height:18px" data-chg2="qRe"> كيلومترات غير محدودة</span></label>${q.car.unl?`<input type="hidden" id="qc_km" value="">`:inp("qc_km","حد الكيلومترات",q.car.km,'placeholder="مثال: 250 كم في اليوم"')}</div>`:`<p class="muted">مش هيظهر جزء للبرنامج أو السيارة.</p>`}`,q.mode==="program"?`${q.days.length} أيام جولات`:q.mode==="car"?esc(q.car.name||"سيارة"):q.mode==="transfers"?"انتقالات فقط":"")}
   ${sec("inc","⑤ العرض يشمل",`<div style="background:var(--surface-2);border-radius:10px;padding:8px 12px;margin-bottom:8px">${qIncludes(q).map(x=>`<div style="font-size:13px;padding:2px 0">✔ ${esc(x)}</div>`).join("")||`<span class="muted">هيتكتب تلقائي من البيانات</span>`}</div>
     <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="q_tr" ${q.transfers?"checked":""} style="width:18px;height:18px" data-chg2="qRe"> الانتقالات من وإلى المطار</label><label class="f">إضافات (كل سطر نقطة)<textarea id="q_extra" rows="2" placeholder="مثال: شريحة إنترنت مجانية">${esc(q.extra||"")}</textarea></label>`,`${qIncludes(q).length} نقاط`)}
@@ -2795,7 +2859,7 @@ async function qSave(print){qRead();const q=QD.q;if(!q.country)return toast("ا�
   const log=[...(l.log||[]),{at:q.updatedAt,by:ME.name,text:`${i>=0?"تعديل":"إضافة"} عرض سعر: ${q.country} · ${money(qTotals(q).total)} ${qCur(typeof q!=="undefined"?q:(QD&&QD.q))}`}].slice(-60);
   try{await put("leads",l.id,{...l,offers,log});QD.isNew=false;toast("تم حفظ العرض");if(print)return qPrint(l.id,q.id);closeModal();leadDetail(l.id)}catch{}}
 function qPrint(leadId,qid){const l=(S.leads||[]).find(x=>x.id===leadId);const q=l&&(l.offers||[]).find(o=>o.id===qid);if(!q)return;
-  SENDTO={doc:"عرض السعر",docEn:"Quotation",no:"",name:l.name||"",phone:l.phone||"",email:""};PREV={back:{type:"lead",id:leadId}};
+  SENDTO={doc:"عرض السعر",docEn:"Quotation",no:"",name:l.name||"",phone:l.phone||"",email:"",trip:tripTxtQ(q)};PREV={back:{type:"lead",id:leadId}};
   previewPdf(quotePaper(l,q),`Quotation_${safeName(q.country)}_${safeName(l.name||l.phone)}.pdf`,false)}
 function quotePaper(l,q){const st=set();const O="#e3922a",OD="#b9650d",OL="#fbe9d2",CR="#fdf6ee",LN="#f1e2d0",TX="#2f241b",MU="#8a7563";const nts=qNights(q);const T=qTotals(q);const cur=qCur(q);
   const box=(t,ic,body)=>`<div class="avoid" style="margin:0 0 5mm;border:1px solid ${LN};border-radius:3mm;overflow:hidden"><div style="background:${CR};padding:2.6mm 4mm;display:flex;align-items:center;gap:2.5mm;border-bottom:1px solid ${LN}"><span style="width:7mm;height:7mm;border-radius:50%;background:${O};color:#fff;display:inline-grid;place-items:center;font-size:12px">${ic}</span><b style="font-size:14px;color:${OD}">${t}</b></div><div style="padding:3.5mm 4.5mm">${body}</div></div>`;
@@ -3225,6 +3289,8 @@ async function gHotelAI(id,hid){const g=gOf(id);if(!g)return;const h=(g.hotels||
 function aiCard(){const s=set();return `<div class="card"><h3>✨ الذكاء الاصطناعي (Gemini) — نبذة دليل الدول والفنادق</h3>
    <p style="margin:0 0 8px"><span class="pill ${s.aiKey?"p-ok":"p-warn"}">${s.aiKey?"✓ المفتاح متسجّل":"مش متفعّل — النبذة بتتحسب من المتوسطات اللي بتكتبها لكل دولة"}</span></p>
    <ol style="margin:0 0 10px;padding-inline-start:20px;font-size:13px;line-height:1.9"><li>افتح <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio ↗</a> بحساب جوجل بتاع الشركة.</li><li>اضغط <b>Create API key</b> وانسخ المفتاح (بيبدأ بـ AIza).</li><li>الزقه هنا ← «🔌 اختبار» ← «حفظ» تحت.</li></ol>
+   <label class="f full">تعليمات ثابتة للذكاء الاصطناعي (بتتطبق على الفاوتشرات والعروض والرسايل)<textarea id="s_aiRules" rows="3" placeholder="مثال: اكتب بأسلوب راقي ومختصر، اذكر إن الأسعار شاملة الضرايب، متذكرش أسماء مطاعم بعينها">${esc(s.aiRules||"")}</textarea></label>
+   <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:4px 0 8px"><input type="checkbox" id="s_aiAutoMsg" ${s.aiAutoMsg===false?"":"checked"} style="width:18px;height:18px"> رسايل الواتساب والإيميل للعميل تتكتب بالذكاء الاصطناعي لوحدها (مع نبذة عن الرحلة)</label>
    <div class="grid2"><label class="f">مفتاح Gemini API<input id="s_aiKey" dir="ltr" autocomplete="off" value="${esc(s.aiKey||"")}" placeholder="AIza…"></label><label class="f">الموديل (اختياري)<input id="s_aiModel" dir="ltr" value="${esc(s.aiModel||"")}" placeholder="gemini-2.5-flash"></label></div>
    <div class="foot" style="flex-wrap:wrap;gap:8px"><button data-act="aiTest">🔌 اختبار</button></div><div id="aiMsg" class="muted" style="font-size:12.5px"></div></div>`}
 
@@ -3857,6 +3923,7 @@ document.addEventListener("click",async e=>{
     case "qDelOffer":confirmBtn(t,async()=>{const l=(S.leads||[]).find(x=>x.id===id);if(!l)return;try{await put("leads",id,{...l,offers:(l.offers||[]).filter(o=>o.id!==t.dataset.q)});toast("تم حذف العرض");leadDetail(id)}catch{}});break;
     case "qAdd":{qRead();const k=t.dataset.k;const q=QD.q;if(k==="hotels")q.hotels.push({name:"",city:"",room:"",rooms:1,board:"bb",nights:""});if(k==="days")q.days.push({title:"",desc:""});if(k==="costs")q.costs.push({type:"other",supplier:"",cost:"",sell:""});QOPEN.add(k==="hotels"?"hotel":k==="days"?"prog":"cost");qRender(true);break}
     case "qDel":{qRead();QD.q[t.dataset.k].splice(+t.dataset.i,1);qRender(true);break}
+    case "qAI":qAIWrite();break;
     case "qGenDays":{qRead();QD.q.days=qMakeDays(QD.q,QD.q.days);qRender(true);break}
     case "qSave":qSave(false);break;
     case "qPrint":qSave(true);break;
@@ -3924,6 +3991,7 @@ document.addEventListener("click",async e=>{
           <p class="muted" style="font-size:12px;margin:8px 0 0">${pct>80?"⚠️ قربت توصل للحد المجاني — فكّر في الترقية لـ Blaze أو امسح ملفات قديمة.":pct>60?"المساحة كويسة، بس تابعها كل شهر.":"✓ المساحة كويسة جدًا."} الرقم تقريبي؛ الرقم الرسمي في صفحة الباقة في Firebase.</p>`}
       catch(e){box.innerHTML=`<p class="muted">تعذر الحساب، جرّب تاني.</p>`}}break;
     case "sendWa":sendDlg("wa");break;
+    case "sendAI":sendAI(t.dataset.how);break;
     case "sendMail":sendDlg("mail");break;
     case "sendGo":sendGo(t.dataset.how);break;
     case "sendBack":{const p=PREV;if(p&&p.kind==="pdf"){const b=p.back,to=p.to;SENDTO=to;PREV={back:b};previewPdf(p.html,p.filename,p.land)}else if(p&&p.kind==="csv"){const b=p.back,to=p.to;SENDTO=to;PREV={back:b};previewCsv(p.rows,p.filename)}}break;
@@ -3938,7 +4006,7 @@ document.addEventListener("click",async e=>{
     case "accPhotoDel":if(accDraft){accDraft.photo="";const box=$("#ac_av");if(box)box.innerHTML=avHTML(accDraft,"lg");t.remove()}break;
     case "accDel":confirmBtn(t,async()=>{const aid=accDraft.id,un=accDraft.username;closeModal();await del("accounts",aid);try{if(un)await DB.collection("avatars").doc(un).delete()}catch{}toast("تم حذف المستخدم")});break;
     case "rmLogo":{const s={...S.settings};delete s.logo;await saveSettings(s);toast("تمت إزالة الشعار");break}
-    case "saveCo":{const s={...S.settings};["name","email","phone","address","trn","emirate","bankName","accountNo","iban","prefix","currency","workStart","workEnd","invoiceTerms","waNumber","waMsg","waHello","waPay","waTrip","mailSubject","mailBody","mailCc","mailVia","waCode","tzDoc","tzRep","driveUp","aiKey","aiModel"].forEach(k=>{const el=$("#s_"+k);if(el)s[k]=el.value.trim()});["startNo","vatRate","dueDays","grace","otRate","otFriRate"].forEach(k=>{const el=$("#s_"+k);if(el)s[k]=+el.value||0});if($("#s_waCode"))s.waCode=ccVal("s_waCode")||"971";s.showCards=$("#s_showCards").checked;s.faceRequired=$("#s_faceReq").checked;
+    case "saveCo":{const s={...S.settings};["name","email","phone","address","trn","emirate","bankName","accountNo","iban","prefix","currency","workStart","workEnd","invoiceTerms","waNumber","waMsg","waHello","waPay","waTrip","mailSubject","mailBody","mailCc","mailVia","waCode","tzDoc","tzRep","driveUp","aiKey","aiModel","aiRules"].forEach(k=>{const el=$("#s_"+k);if(el)s[k]=el.value.trim()});["startNo","vatRate","dueDays","grace","otRate","otFriRate"].forEach(k=>{const el=$("#s_"+k);if(el)s[k]=+el.value||0});if($("#s_waCode"))s.waCode=ccVal("s_waCode")||"971";s.showCards=$("#s_showCards").checked;s.faceRequired=$("#s_faceReq").checked;if($("#s_aiAutoMsg"))s.aiAutoMsg=$("#s_aiAutoMsg").checked;
       const f=$("#s_logoFile").files[0];if(f){try{s.logo=await readLogo(f)}catch{return toast("تعذر قراءة صورة الشعار")}}try{await saveSettings(s);toast("تم حفظ بيانات الشركة")}catch{}break}
   }
 });
