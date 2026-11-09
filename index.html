@@ -507,15 +507,15 @@ function notify(title,text,{icon="🔔",img="",go="",kind="note",sys=true}={}){
   clearTimeout(nbarT);nbarT=setTimeout(()=>{b.classList.remove("on");setTimeout(()=>b.remove(),400)},6000);sound(kind);
   if(sys&&document.hidden&&"Notification" in window&&Notification.permission==="granted"){navigator.serviceWorker&&navigator.serviceWorker.ready.then(r=>r.showNotification(title,{body:text||"",icon:"./icon-192.png",badge:"./badge-96.png",tag:"almaha-"+Date.now(),data:{go}})).catch(()=>{try{new Notification(title,{body:text||"",icon:"./icon-192.png"})}catch{}})}}
 async function askNotif(){if(!("Notification" in window))return toast("الجهاز ده مش بيدعم إشعارات النظام");const p=await Notification.requestPermission();toast(p==="granted"?"تم تفعيل إشعارات الجهاز ✓":"الإشعارات مقفولة — فعّلها من إعدادات المتصفح/الموبايل للموقع ده");render()}
-const IC={mic:"M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3zM19 10v2a7 7 0 0 1-14 0v-2M12 19v3M8 22h8",headset:"M3 18v-6a9 9 0 0 1 18 0v6M21 19a2 2 0 0 1-2 2h-1v-6h3zM3 19a2 2 0 0 0 2 2h1v-6H3z",home:"M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z",check:"M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9",doc:"M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 13h8M8 17h5",users:"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8",receipt:"M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2zM9 8h6M9 12h6",truck:"M2 6h12v10H2zM14 9h4l3 3v4h-7M6 19a1.6 1.6 0 1 0 0-.1M17 19a1.6 1.6 0 1 0 0-.1",wallet:"M3 7h18v12H3zM3 7l3-4h12l3 4M16 13h2",id:"M3 5h18v14H3zM8 12a2 2 0 1 0 0-.1M5 16.5c.6-1.4 1.7-2 3-2s2.4.6 3 2M13.5 10h5M13.5 14h4",clock:"M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2",cash:"M2 6h20v12H2zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 9.5v.01M18 14.5v.01",percent:"M19 5L5 19M7 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM17 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z",lock:"M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4",bell:"M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0",gear:"M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4.9a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.5a7 7 0 0 0-2 1.2l-2.4-.9-2 3.4 2 1.6a7 7 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-.9a7 7 0 0 0 2 1.2L10 21h4l.5-2.5a7 7 0 0 0 2-1.2l2.4.9 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z",search:"M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-4.3-4.3",print:"M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z",dl:"M12 3v12M7 10l5 5 5-5M4 21h16",plus:"M12 5v14M5 12h14",link:"M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1",plane:"M2 16l20-6L2 4l3 6-3 6zM5 10h8",face:"M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M9 10v1M15 10v1M12 10v3h-1M9 16c1.6 1.2 4.4 1.2 6 0",burger:"M3 6h18M3 12h18M3 18h18",kiosk:"M5 3h14v14H5zM9 21h6M12 17v4",out:"M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"};
+const IC={trash:"M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6",mic:"M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3zM19 10v2a7 7 0 0 1-14 0v-2M12 19v3M8 22h8",headset:"M3 18v-6a9 9 0 0 1 18 0v6M21 19a2 2 0 0 1-2 2h-1v-6h3zM3 19a2 2 0 0 0 2 2h1v-6H3z",home:"M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z",check:"M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9",doc:"M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 13h8M8 17h5",users:"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8",receipt:"M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2zM9 8h6M9 12h6",truck:"M2 6h12v10H2zM14 9h4l3 3v4h-7M6 19a1.6 1.6 0 1 0 0-.1M17 19a1.6 1.6 0 1 0 0-.1",wallet:"M3 7h18v12H3zM3 7l3-4h12l3 4M16 13h2",id:"M3 5h18v14H3zM8 12a2 2 0 1 0 0-.1M5 16.5c.6-1.4 1.7-2 3-2s2.4.6 3 2M13.5 10h5M13.5 14h4",clock:"M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2",cash:"M2 6h20v12H2zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 9.5v.01M18 14.5v.01",percent:"M19 5L5 19M7 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM17 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z",lock:"M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4",bell:"M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0",gear:"M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4.9a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.5a7 7 0 0 0-2 1.2l-2.4-.9-2 3.4 2 1.6a7 7 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-.9a7 7 0 0 0 2 1.2L10 21h4l.5-2.5a7 7 0 0 0 2-1.2l2.4.9 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z",search:"M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-4.3-4.3",print:"M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z",dl:"M12 3v12M7 10l5 5 5-5M4 21h16",plus:"M12 5v14M5 12h14",link:"M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1",plane:"M2 16l20-6L2 4l3 6-3 6zM5 10h8",face:"M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M9 10v1M15 10v1M12 10v3h-1M9 16c1.6 1.2 4.4 1.2 6 0",burger:"M3 6h18M3 12h18M3 18h18",kiosk:"M5 3h14v14H5zM9 21h6M12 17v4",out:"M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"};
 const ic=(k,c="i")=>`<svg class="${c}" viewBox="0 0 24 24" aria-hidden="true"><path d="${IC[k]}"/></svg>`;
 const COUNTRIES=["الإمارات","السعودية","مصر","الأردن","الكويت","قطر","البحرين","عُمان","اليمن","العراق","سوريا","لبنان","فلسطين","السودان","المغرب","الجزائر","تونس","ليبيا","الهند","باكستان","بنغلاديش","الفلبين","إيران","تركيا","المملكة المتحدة","الولايات المتحدة","روسيا","تايلاند","ماليزيا","إندونيسيا","سنغافورة","المالديف","سريلانكا","جورجيا","أذربيجان","أرمينيا","أوزبكستان","كازاخستان","النمسا","سويسرا","ألمانيا","فرنسا","إيطاليا","إسبانيا","هولندا","التشيك","المجر","اليونان","البوسنة","الصين","اليابان","كوريا الجنوبية","فيتنام","كينيا","تنزانيا","زنجبار","موريشيوس","جنوب أفريقيا","البرازيل","كندا","أستراليا"];
 $("#countries").innerHTML=COUNTRIES.map(c=>`<option value="${c}">`).join("");
 
 /* ================= state & store ================= */
-const RULES_BAD=new Set(),NEW_RULE_COLS=["leads","requests","packages","pdfq"];
-const FS_RULES="rules_version = '2';\n// Almaha Holidays — Firestore security rules\n// Paste this whole file into: Firebase console → Firestore Database → Rules → Publish\nservice cloud.firestore {\n  match /databases/{database}/documents {\n\n    function acc() { return get(/databases/$(database)/documents/accounts/$(request.auth.uid)).data; }\n    function member() {\n      return request.auth != null\n        && exists(/databases/$(database)/documents/accounts/$(request.auth.uid))\n        && acc().active != false;\n    }\n    function admin() { return member() && acc().admin == true; }\n    // sections this employee may delete in directly (set by the owner in user permissions)\n    function dl() { return acc().get('perms', {}).get('del', []); }\n    function delOk(col) {\n      return (col == 'customers' && 'customers' in dl()) || (col == 'trips' && 'customers' in dl())\n        || (col == 'invoices' && 'invoices' in dl()) || (col == 'vouchers' && 'vouchers' in dl())\n        || (col == 'vphotos' && 'vouchers' in dl()) || (col == 'travelers' && 'docs' in dl())\n        || (col == 'ofiles' && 'orders' in dl()) || (col == 'leads' && 'leads' in dl())\n        || (col == 'tasks' && ('tasks' in dl() || 'leads' in dl())) || (col == 'packages' && ('packages' in dl() || 'mkt' in dl()))\n        || (col == 'expenses' && 'expenses' in dl()) || (col == 'employees' && 'employees' in dl())\n        || (col == 'attendance' && 'attendance' in dl());\n    }\n    function noOwnerYet() { return !exists(/databases/$(database)/documents/meta/owner); }\n\n    // Is the system set up yet? (read before login)\n    match /meta/owner {\n      allow read: if true;\n      allow create: if request.auth != null && noOwnerYet()\n        && request.resource.data.uid == request.auth.uid;\n    }\n\n    // User accounts: the very first account becomes the owner/admin; after that only admins manage users\n    match /accounts/{id} {\n      allow read: if member();\n      allow create: if admin() || (request.auth != null && request.auth.uid == id && noOwnerYet());\n      allow update, delete: if admin();\n    }\n\n    // Login screen: photo + first name for a username (shown before sign-in)\n    match /avatars/{u} {\n      allow read: if true;\n      allow write: if admin();\n    }\n\n    // Company settings & background\n    match /settings/{doc} {\n      allow read: if member();\n      allow write: if admin();\n    }\n\n    // Owner-only data: salaries, suppliers, supplier bills\n    match /payroll/{id}   { allow read, write: if admin(); }\n    match /suppliers/{id} { allow read, write: if admin(); }\n    match /bills/{id}     { allow read, write: if admin(); }\n\n    // Activity log: everyone writes their own actions, only the owner reads it\n    match /activity/{id} {\n      allow create: if member();\n      allow read, update, delete: if admin();\n    }\n\n    // Leave & special requests: employees send their own, only the owner/admin approves\n    match /requests/{id} {\n      allow read: if member();\n      allow create: if member() && request.resource.data.status == 'pending' && request.resource.data.byId == request.auth.uid;\n      allow update: if admin() || (member() && resource.data.byId == request.auth.uid && request.resource.data.status == resource.data.status);\n      allow delete: if admin() || (member() && resource.data.byId == request.auth.uid && resource.data.status == 'pending');\n    }\n\n    // Uploaded files (passports, receipts, tickets…)\n    match /blobs/{id} {\n      allow read, write: if member();\n      match /c/{chunk} { allow read, write: if member(); }\n    }\n\n    // Everything else the team works on\n    // Delete is for the owner/admin only\n    match /{col}/{id} {\n      allow read, create, update: if member()\n        && col in ['employees','attendance','customers','invoices','expenses','tasks',\n                   'ofiles','travelers','trips','vouchers','vphotos','pdfq','leads','packages'];\n      allow delete: if member()\n        && col in ['employees','attendance','customers','invoices','expenses','tasks',\n                   'ofiles','travelers','trips','vouchers','vphotos','pdfq','leads','packages']\n        && (admin() || delOk(col));\n    }\n  }\n}\n";
-const COLS=["accounts","employees","attendance","customers","invoices","suppliers","bills","expenses","payroll","tasks","ofiles","travelers","trips","vouchers","vphotos","activity","leads","requests","packages"];
+const RULES_BAD=new Set(),NEW_RULE_COLS=["leads","requests","packages","pdfq","trash"];
+const FS_RULES="rules_version = '2';\n// Almaha Holidays — Firestore security rules\n// Paste this whole file into: Firebase console → Firestore Database → Rules → Publish\nservice cloud.firestore {\n  match /databases/{database}/documents {\n\n    function acc() { return get(/databases/$(database)/documents/accounts/$(request.auth.uid)).data; }\n    function member() {\n      return request.auth != null\n        && exists(/databases/$(database)/documents/accounts/$(request.auth.uid))\n        && acc().active != false;\n    }\n    function admin() { return member() && acc().admin == true; }\n    // sections this employee may delete in directly (set by the owner in user permissions)\n    function dl() { return acc().get('perms', {}).get('del', []); }\n    function delOk(col) {\n      return (col == 'customers' && 'customers' in dl()) || (col == 'trips' && 'customers' in dl())\n        || (col == 'invoices' && 'invoices' in dl()) || (col == 'vouchers' && 'vouchers' in dl())\n        || (col == 'vphotos' && 'vouchers' in dl()) || (col == 'travelers' && 'docs' in dl())\n        || (col == 'ofiles' && 'orders' in dl()) || (col == 'leads' && 'leads' in dl())\n        || (col == 'tasks' && ('tasks' in dl() || 'leads' in dl())) || (col == 'packages' && ('packages' in dl() || 'mkt' in dl()))\n        || (col == 'expenses' && 'expenses' in dl()) || (col == 'employees' && 'employees' in dl())\n        || (col == 'attendance' && 'attendance' in dl());\n    }\n    function noOwnerYet() { return !exists(/databases/$(database)/documents/meta/owner); }\n\n    // Is the system set up yet? (read before login)\n    match /meta/owner {\n      allow read: if true;\n      allow create: if request.auth != null && noOwnerYet()\n        && request.resource.data.uid == request.auth.uid;\n    }\n\n    // User accounts: the very first account becomes the owner/admin; after that only admins manage users\n    match /accounts/{id} {\n      allow read: if member();\n      allow create: if admin() || (request.auth != null && request.auth.uid == id && noOwnerYet());\n      allow update, delete: if admin();\n    }\n\n    // Login screen: photo + first name for a username (shown before sign-in)\n    match /avatars/{u} {\n      allow read: if true;\n      allow write: if admin();\n    }\n\n    // Company settings & background\n    match /settings/{doc} {\n      allow read: if member();\n      allow write: if admin();\n    }\n\n    // Owner-only data: salaries, suppliers, supplier bills\n    match /payroll/{id}   { allow read, write: if admin(); }\n    match /suppliers/{id} { allow read, write: if admin(); }\n    match /bills/{id}     { allow read, write: if admin(); }\n\n    // Activity log: everyone writes their own actions, only the owner reads it\n    match /activity/{id} {\n      allow create: if member();\n      allow read, update, delete: if admin();\n    }\n\n    // Leave & special requests: employees send their own, only the owner/admin approves\n    match /requests/{id} {\n      allow read: if member();\n      allow create: if member() && request.resource.data.status == 'pending' && request.resource.data.byId == request.auth.uid;\n      allow update: if admin() || (member() && resource.data.byId == request.auth.uid && request.resource.data.status == resource.data.status);\n      allow delete: if admin() || (member() && resource.data.byId == request.auth.uid && resource.data.status == 'pending');\n    }\n\n    // Recycle bin: whoever deletes something leaves a copy here; only the owner/admin sees, restores or empties it\n    match /trash/{id} {\n      allow create: if member() && request.resource.data.byId == request.auth.uid;\n      allow update: if admin() || (member() && resource.data.byId == request.auth.uid);\n      allow read, delete: if admin();\n    }\n\n    // Uploaded files (passports, receipts, tickets…)\n    match /blobs/{id} {\n      allow read, write: if member();\n      match /c/{chunk} { allow read, write: if member(); }\n    }\n\n    // Everything else the team works on\n    // Delete is for the owner/admin only\n    match /{col}/{id} {\n      allow read, create, update: if member()\n        && col in ['employees','attendance','customers','invoices','expenses','tasks',\n                   'ofiles','travelers','trips','vouchers','vphotos','pdfq','leads','packages'];\n      allow delete: if member()\n        && col in ['employees','attendance','customers','invoices','expenses','tasks',\n                   'ofiles','travelers','trips','vouchers','vphotos','pdfq','leads','packages']\n        && (admin() || delOk(col));\n    }\n  }\n}\n";
+const COLS=["accounts","employees","attendance","customers","invoices","suppliers","bills","expenses","payroll","tasks","ofiles","travelers","trips","vouchers","vphotos","activity","leads","requests","packages","trash"];
 const S={settings:{},bg:"",loaded:false};COLS.forEach(c=>S[c]=[]);
 let ASSETS=null;let mode="local",DB=null,DL=null,USER=null,IS_OWNER=false,serverCanWrite=true;
 let ME=null,authErr="";
@@ -580,6 +580,7 @@ function vActivity(){
 function stamp(d){return{...d,updatedAt:new Date().toISOString(),updatedBy:ME?ME.name:""}}
 async function put(col,id,data){
   const _old=col==="activity"?null:(S[col]||[]).find(x=>x.id===id)||null;
+  const _tv=window.__trVer;if(_tv&&_old&&_tv.col===col&&_tv.id===id&&Date.now()-_tv.t<20000){window.__trVer=null;await trAdd("ver",col,id,_old,_tv.what,{rm:trDiff(_old,data)})}
   data=stamp({...data,id});if(!_old&&col!=="activity"){if(!data.createdAt)data.createdAt=data.updatedAt;if(!data.createdBy||data.createdBy===(ME&&ME.id))data.createdByName=ME?ME.name:"";}
   await putRaw(col,id,data);logAct(col,_old,data);queuePdf(col,id);
 }
@@ -591,6 +592,7 @@ async function del(col,id){
   const _old=(S[col]||[]).find(x=>x.id===id)||null;await delRaw(col,id);if(_old)logAct(col,_old,null);
 }
 async function delRaw(col,id){
+  {const _r=(S[col]||[]).find(x=>x.id===id);if(_r&&!TR_SKIP.has(col))await trAdd("doc",col,id,_r)}
   if(mode==="db"){try{await DB.collection(col).doc(id).delete()}catch(e){handleErr(e);throw e}}
   else{S[col]=S[col].filter(x=>x.id!==id);lsSave();render()}
 }
@@ -599,7 +601,7 @@ async function saveSettings(data){
   else{S.settings=data;lsSave();render()}
 }
 function handleErr(e){const c=e&&e.code;
-  if(c==="permission-denied"&&ME&&ME.admin&&["leads","packages","requests"].includes(view)){RULES_BAD.add(view);rulesHelp();return}
+  if(c==="permission-denied"&&ME&&ME.admin&&["leads","packages","requests","trash"].includes(view)){RULES_BAD.add(view);rulesHelp();return}
   if(c==="permission-denied")toast("ليس لديك صلاحية لهذا الإجراء");
   else if(c==="unavailable")toast("لا يوجد اتصال بالإنترنت — سيتم الحفظ عند عودة الاتصال");
   else if(c==="quota_exceeded")toast("امتلأت مساحة قاعدة البيانات. احذف سجلات قديمة ثم حاول مرة أخرى");
@@ -662,6 +664,7 @@ const MODS=[
   {k:"payroll",l:"الرواتب",g:"الموارد البشرية",i:"cash"},
   {k:"vat",l:"إقرار الضريبة",g:"الضرائب",i:"percent"},
   {k:"activity",l:"سجل النشاط والتنبيهات",g:"الإعدادات",i:"bell"},
+  {k:"trash",l:"سلة المحذوفات",g:"الإعدادات",i:"trash"},
   {k:"users",l:"المستخدمين والصلاحيات",g:"الإعدادات",i:"lock"},
   {k:"company",l:"بيانات الشركة",g:"الإعدادات",i:"gear"}
 ];
@@ -678,7 +681,7 @@ const ROLES={
   staff:{l:"موظف",perms:{}},
   custom:{l:"مخصص",perms:{}}
 };
-const OWNER_ONLY=["payroll","suppliers","bills","vat","reports","salaries","activity"]; // only the owner/admin, never employees
+const OWNER_ONLY=["payroll","suppliers","bills","vat","reports","salaries","activity","trash"]; // only the owner/admin, never employees
 function can(k,lvl="view"){if(!ME)return false;if(ME.admin)return true;if(OWNER_ONLY.includes(k))return false;const P=ME.perms||{};let p=P[k];if(k==="trips"&&p==null)p=P.customers;p=p||"none";return lvl==="view"?p!=="none":p==="edit"}
 const canW=k=>can(k,"edit")&&serverCanWrite;
 const leadsOff=()=>!!ME&&!ME.admin&&(((ME.perms||{}).leads==="none")||(["marketing","voice","designer"].includes(ME.role)&&(ME.perms||{}).leads==null));
@@ -835,6 +838,88 @@ const DEL_LBL={qDelOffer:"عرض سعر لعميل",leadDel:"عميل من مت�
 const DELMODS=[["customers","العملاء"],["invoices","فواتير العملاء والدفعات"],["vouchers","الفاوتشرات"],["docs","الجوازات والحجوزات"],["orders","ملفات الفواتير"],["leads","متابعة العملاء"],["tasks","المهام"],["packages","العروض الجاهزة"],["mkt","الماركتينج"],["bills","فواتير الموردين"],["suppliers","الموردين"],["expenses","المصروفات"],["employees","الموظفين"],["attendance","الحضور والانصراف"]];
 const canDel=m=>!!ME&&(ME.admin||((ME.perms||{}).del||[]).includes(m));
 function delModOf(a,d,c){if(a==="formDel"){const col=(c.form||{}).col||"";return col==="travelers"?"docs":col}if(a==="rmP")return d.k==="bill"?"bills":"invoices";return DEL_MOD[a]||""}
+/* ===== سلة المحذوفات: كل حذف بيتحفظ نسخة منه هنا لحد ما المدير يرجّعه أو يفرّغ السلة ===== */
+const TR_SKIP=new Set(["activity","trash","pdfq","requests","accounts"]);
+const TR_VER_ACTS=new Set(["rmPay","rmP","qDelOffer","dsRm","payDel","faceClear","attEditDel"]);
+const TR_LBL={customers:"عميل",trips:"رحلة",invoices:"فاتورة عميل",bills:"فاتورة مورد",suppliers:"مورد",expenses:"مصروف",employees:"موظف",attendance:"حضور وانصراف",payroll:"رواتب",tasks:"مهمة",ofiles:"مرفق",travelers:"جواز / مسافر",vouchers:"فاوتشر",vphotos:"صورة فاوتشر",leads:"متابعة عميل",packages:"عروض / ماركتينج"};
+let TR_LAST=null,trF="all",trQ="";
+function trTitle(col,r){if(!r)return"—";try{if(col==="attendance")return `${empName(r.empId)||""} · ${dAr(r.date)}`;if(col==="payroll")return `رواتب ${r.id||""}`}catch{}return String(r.title||r.name||r.no||r.customerName||r.country||r.fileName||r.date||r.id||"—").slice(0,120)}
+async function trAdd(kind,col,id,data,what,extra){if(TR_SKIP.has(col)||!data||!ME)return;const tid=uid()+uid();
+  const e={kind,col,docId:id,data:JSON.parse(JSON.stringify(data)),title:trTitle(col,data),what:what||"",by:(window.__trBy&&Date.now()-window.__trBy.t<20000&&window.__trBy.n)?`${window.__trBy.n} (بموافقة ${ME.name||""})`:(ME.name||""),byId:ME.id||"",at:new Date().toISOString(),files:[],...(extra?JSON.parse(JSON.stringify(extra)):{})};
+  try{if(mode==="db")await DB.collection("trash").doc(tid).set(e);else{S.trash.push({...e,id:tid});lsSave()}TR_LAST={id:tid,t:Date.now(),files:e.files}}catch(err){console.warn("trash",err);if(err&&err.code==="permission-denied"){RULES_BAD.add("trash")}}}
+function fDelNow(f){try{if(f.gid)drvDel(f.gid);else if(f.asx)ASX.delete(f.asx);else if(f.asset&&ASSETS)Promise.resolve(ASSETS.delete(f.asset)).catch(()=>{})}catch{}}
+/* files of a deleted item wait in the bin with it — they're removed for good only when the bin is emptied */
+function fDel(f){const L=TR_LAST;if(L&&Date.now()-L.t<15000){L.files.push(f);clearTimeout(L.tm);L.tm=setTimeout(()=>{if(mode==="db")DB.collection("trash").doc(L.id).update({files:L.files}).catch(()=>{});else{const x=(S.trash||[]).find(y=>y.id===L.id);if(x){x.files=[...L.files];lsSave()}}},400);return}fDelNow(f)}
+async function trDrop(id){if(mode==="db")await DB.collection("trash").doc(id).delete();else{S.trash=S.trash.filter(x=>x.id!==id);lsSave();render()}}
+async function trPurge(e){(e.files||[]).forEach(fDelNow);await trDrop(e.id)}
+/* what exactly a delete removed from inside a document — so a restore puts back only that, on top of the document as it is now */
+const TR_META=new Set(["updatedAt","updatedBy","createdAt","createdBy","createdByName","editedBy","editedAt","ntf","ack"]);
+const trKey=x=>x&&typeof x==="object"&&!Array.isArray(x)?(x.id!=null?"i:"+x.id:x.pid!=null?"p:"+x.pid:x.empId!=null?"e:"+x.empId:null):null;
+const trSame=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+function trDiffArr(oa,na,path,out){na=Array.isArray(na)?na:[];
+  oa.forEach((o,i)=>{const k=trKey(o);
+    if(k){const n=na.find(x=>trKey(x)===k);if(!n){out.push({path,item:o,i});return}
+      if(!trSame(o,n))Object.keys(o).forEach(f=>{if(Array.isArray(o[f]))trDiffArr(o[f],n[f],[...path,{k},f],out)});return}
+    if(!na.some(x=>trSame(x,o)))out.push({path,item:o,i})})}
+function trDiff(o,n){const out=[];o=o||{};n=n||{};
+  Object.keys(o).forEach(f=>{if(TR_META.has(f)||f==="id")return;const a=o[f],b=n[f];
+    if(Array.isArray(a))trDiffArr(a,b,[f],out);
+    else if(!trSame(a,b)&&a!==""&&a!=null)out.push({f,val:a,was:b===undefined?null:b})});
+  return out}
+function trApply(cur,rm){const d=JSON.parse(JSON.stringify(cur));const done=[],kept=[];
+  rm.forEach(r=>{
+    if(r.f){const now=d[r.f]===undefined?null:d[r.f];if(trSame(now,r.was)||now===""||now==null){d[r.f]=r.val;done.push(r)}else kept.push(r);return}
+    let box=d,ok=true;for(let n=0;n<r.path.length;n++){const st=r.path[n],last=n===r.path.length-1;
+      if(typeof st==="string"){if(box[st]==null)box[st]=[];if(last)break;box=box[st]}
+      else{const x=(Array.isArray(box)?box:[]).find(y=>trKey(y)===st.k);if(!x){ok=false;break}box=x}}
+    if(!ok){kept.push(r);return}
+    const f=r.path[r.path.length-1];const arr=box[f]||(box[f]=[]);const k=trKey(r.item);
+    if(k?arr.some(y=>trKey(y)===k):arr.some(y=>trSame(y,r.item))){done.push(r);return}
+    arr.splice(Math.min(r.i==null?arr.length:r.i,arr.length),0,r.item);done.push(r)});
+  return{d,done,kept}}
+async function trRestore(e){const cur=(S[e.col]||[]).find(x=>x.id===e.docId);let res={done:[],kept:[],full:true,extra:0};
+  if(e.kind==="ver"&&cur&&Array.isArray(e.rm)){const a=trApply(cur,e.rm);const d=a.d;delete d.id;
+    if(e.col==="payroll"&&Array.isArray(d.lines)){try{const all=d.lines.every(l=>payRem(l,{...d,status:"x"})<=0.009);if(d.status==="approved"&&all)d.status="paid";else if(d.status==="paid"&&!all)d.status="approved"}catch{}}
+    await put(e.col,e.docId,d);res={done:a.done,kept:a.kept,full:false,extra:0}}
+  else{const d={...(e.data||{})};delete d.id;await put(e.col,e.docId,d)}
+  await trDrop(e.id);
+  /* a restored payment brings back its receipt files too */
+  if(e.kind==="ver"&&Array.isArray(e.rm)){const pids=e.rm.map(r=>r.item&&r.item.pid).filter(Boolean);
+    for(const o of (S.trash||[]).filter(x=>x.col==="ofiles"&&x.kind==="doc"&&x.data&&pids.includes(x.data.payId))){try{const d={...o.data};delete d.id;await put("ofiles",o.docId,d);await trDrop(o.id);res.extra++}catch{}}}
+  return res}
+/* after a restore: say what came back and offer to open it for a review / edit */
+function trDone(e,res){const L=TR_LBL[e.col]||"";
+  modal(`<h2>↩ اترجع من السلة</h2>
+   <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px"><div class="muted" style="font-size:12px">${esc(L)}</div><b>${esc(e.title||"")}</b>${e.kind==="ver"&&e.what?`<div style="font-size:13px;margin-top:4px">${esc(e.what)}</div>`:""}</div>
+   ${res.full?`<p style="margin:0 0 8px">رجع زي ما كان قبل الحذف.</p>`:`<p style="margin:0 0 8px">✅ اللي اتحذف بس هو اللي رجع جوه ${esc(L)} — وأي تعديل اتعمل بعد الحذف فضل زي ما هو.</p>`}
+   ${res.extra?`<p class="muted" style="font-size:12.5px;margin:0 0 8px">📎 ورجع معاه ${res.extra} مرفق (إيصال).</p>`:""}
+   ${res.kept.length?`<div class="banner" style="margin:0 0 10px">⚠️ ${res.kept.length} حاجة اتغيّرت بعد الحذف، فسبتها بقيمتها الحالية — راجعها لو حابب.</div>`:""}
+   <div class="banner info" style="margin:0 0 10px">لو حابب تعدّل عليه، افتحه من هنا.</div>
+   <div class="foot" style="flex-wrap:wrap;gap:8px"><button class="primary" data-act="trOpen" data-col="${e.col}" data-id="${esc(e.docId)}">📂 افتحه وراجعه</button><button data-act="close">تمام</button></div>`)}
+
+function trRows(){return [...(S.trash||[])].sort((a,b)=>(b.at||"").localeCompare(a.at||""))}
+function vTrash(){const all=trRows();const cols=[...new Set(all.map(e=>e.col))];
+  const q=trQ.trim().toLowerCase();const rows=all.filter(e=>(trF==="all"||e.col===trF)&&(!q||[e.title,e.what,e.by,TR_LBL[e.col]].join(" ").toLowerCase().includes(q)));
+  const ago=t=>{const d=Math.floor((Date.now()-Date.parse(t))/864e5);return d<=0?"النهارده":d===1?"امبارح":`من ${d} يوم`};
+  return head("سلة المحذوفات","أي حاجة بتتحذف من البرنامج بتتحفظ هنا — ترجّعها بضغطة، أو تحذفها نهائي. الملفات والصور بتفضل محفوظة لحد ما تفرّغ السلة.",all.length?`<button class="danger" data-act="trEmpty">🗑 تفريغ السلة (${all.length})</button>`:"")+
+  `<div class="card">${all.length?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><input id="trQ" placeholder="ابحث في المحذوفات…" value="${esc(trQ)}" style="flex:1;min-width:180px"><select id="trF" style="width:auto"><option value="all">كل الأقسام</option>${cols.map(c=>`<option value="${c}" ${trF===c?"selected":""}>${esc(TR_LBL[c]||c)}</option>`).join("")}</select></div>
+   <div class="tablewrap"><table class="t"><thead><tr><th>القسم</th><th>العنصر</th><th>حذفه</th><th>وقت الحذف</th><th></th></tr></thead><tbody>${rows.map(e=>`<tr>
+    <td><span class="pill">${esc(TR_LBL[e.col]||e.col)}</span></td>
+    <td><b>${esc(e.title||"—")}</b>${e.kind==="ver"?`<div class="muted" style="font-size:12px">${esc(e.what||"جزء من المستند")}</div>`:""}${(e.files||[]).length?`<div class="muted" style="font-size:12px">📎 ${(e.files||[]).length} ملف</div>`:""}</td>
+    <td>${esc(e.by||"")}</td><td><span title="${esc(e.at||"")}">${esc(ago(e.at))}</span><div class="muted" style="font-size:11.5px">${esc(dAr((e.at||"").slice(0,10)))}</div></td>
+    <td style="white-space:nowrap"><button data-act="trView" data-id="${e.id}">👁</button> <button class="primary" data-act="trRestore" data-id="${e.id}">↩ استرجاع</button> <button class="danger" data-act="trPurge" data-id="${e.id}">حذف نهائي</button></td></tr>`).join("")||`<tr><td colspan="5" class="muted" style="text-align:center;padding:18px">مفيش نتائج</td></tr>`}</tbody></table></div>`
+   :`<div class="empty"><b>السلة فاضية</b><p>أي حاجة هتتحذف من البرنامج هتظهر هنا.</p></div>`}</div>`}
+function trView(id){const e=(S.trash||[]).find(x=>x.id===id);if(!e)return;const d=e.data||{};
+  const SKIP=new Set(["id","updatedAt","updatedBy","createdAt","createdBy","ntf","ack","face","fx"]);
+  const rows=Object.entries(d).filter(([k,v])=>!SKIP.has(k)&&v!==""&&v!=null&&typeof v!=="object").slice(0,24);
+  const cur=(S[e.col]||[]).find(x=>x.id===e.docId);
+  modal(`<h2>👁 ${esc(TR_LBL[e.col]||e.col)}: ${esc(e.title||"")}</h2>
+   <div class="muted" style="font-size:12.5px;margin-bottom:8px">حذفه ${esc(e.by||"")} · ${esc(dAr((e.at||"").slice(0,10)))} ${esc((e.at||"").slice(11,16))}${e.what?` · ${esc(e.what)}`:""}</div>
+   ${e.kind==="ver"?`<div class="banner info" style="margin:0 0 10px">ده جزء اتحذف من جوه ${esc(TR_LBL[e.col]||"")}. الاسترجاع بيرجّع الجزء ده بس جوه ${esc(TR_LBL[e.col]||"")} بشكلها الحالي — أي تعديل اتعمل بعد الحذف مش هيضيع.</div>`:""}
+   ${e.kind==="doc"&&cur?`<div class="banner" style="margin:0 0 10px">⚠️ فيه عنصر بنفس الرقم موجود حاليًا — الاسترجاع هيستبدله.</div>`:""}
+   <table class="t"><tbody>${rows.map(([k,v])=>`<tr><td class="muted" style="font-size:12px">${esc(k)}</td><td style="font-size:12.5px">${esc(String(v).slice(0,200))}</td></tr>`).join("")}</tbody></table>
+   ${(e.files||[]).length?`<p class="muted" style="font-size:12.5px">📎 معاه ${(e.files||[]).length} ملف محفوظ — بيرجع مع الاسترجاع.</p>`:""}
+   <div class="foot" style="flex-wrap:wrap;gap:8px"><button class="primary" data-act="trRestore" data-id="${e.id}">↩ استرجاع</button><button class="danger" data-act="trPurge" data-id="${e.id}">حذف نهائي</button><button data-act="close">إغلاق</button></div>`)}
 function delInfo(a,d,c){let col="",id=d.id||"",sub;const P=x=>(S.packages||[]).find(y=>y.id===x);
   switch(a){case "delInv":col="invoices";id=(c.open||{}).id;break;
    case "rmPay":{col="invoices";id=(c.open||{}).id;const v=S.invoices.find(x=>x.id===id);sub=v&&(v.payments||[])[+d.i];break}
@@ -866,9 +951,9 @@ function delReqDlg(a,t){const d=delData(t),c=delCtx(),I=delInfo(a,d,c);if(!I.exi
    <label class="f full">سبب الحذف *<textarea id="dl_why" rows="3" placeholder="مثال: اتسجل بالغلط / مكرر"></textarea></label>
    <div class="foot" style="flex-wrap:wrap;gap:8px"><button class="primary" data-act="delReqSend">📨 إرسال الطلب للمدير</button><button data-act="close">إلغاء</button></div>`)}
 async function delReqSend(){const x=window.__delReq;if(!x)return;const why=$("#dl_why").value.trim();if(!why)return toast("اكتب سبب الحذف");const at=new Date().toISOString();
-  const r={type:"del",status:"pending",text:why,byId:ME.id,by:ME.name,empId:ME.empId||"",createdAt:at,subject:`${x.I.label}: ${x.I.title}`,delAct:x.a,delMod:delModOf(x.a,x.d,x.c),delData:x.d,delCtx:x.c,delRef:{col:x.I.col,id:x.I.id},delSig:x.I.sig,delSnap:x.I.snap};
+  const r={type:"del",status:"pending",text:why,byId:ME.id,by:ME.name,empId:ME.empId||"",createdAt:at,subject:`${x.I.label}: ${x.I.title}`,delAct:x.a,delMod:delModOf(x.a,x.d,x.c),delData:x.d,delCtx:x.c,delRef:{col:x.I.col,id:x.I.id},delSig:x.I.sig,delSnap:(x.I.snap||[]).map(([k,v])=>({k:String(k),v:String(v)}))};
   try{await put("requests",uid(),r);window.__delReq=null;closeModal();toast("📨 اتبعت طلب الحذف للمدير")}catch{}}
-async function delExec(r){const c=r.delCtx||{},d=r.delData||{};const I=delInfo(r.delAct,d,c);
+async function delExec(r){window.__trBy={n:r.by||"",t:Date.now()};const c=r.delCtx||{},d=r.delData||{};const I=delInfo(r.delAct,d,c);
   if(!I.exists||I.sig!==r.delSig){toast("⚠️ العنصر اتغير أو اتحذف من وقت الطلب — افتح المكان واحذفه بنفسك");return false}
   closeModal();if(c.payMonth)payMonth=c.payMonth;if(c.attEd)window.__attEd=c.attEd;if(c.form){formCtx={col:c.form.col,id:c.form.id,fields:[],rec:(S[c.form.col]||[]).find(x=>x.id===c.form.id),back:null}}OPEN=c.open||null;
   const b=document.createElement("button");Object.entries(d).forEach(([k,v])=>b.dataset[k]=v);b.dataset.act=r.delAct;b.dataset.sure="1";b.dataset.ok="1";b.style.display="none";document.body.appendChild(b);b.click();setTimeout(()=>b.remove(),3000);return true}
@@ -1209,13 +1294,13 @@ function renderInner(){
   if(view==="activity"&&actUnread()){actSeen=Date.now();ls.set("erp-act-seen",String(actSeen))}
   const st=S.settings;
   try{$("#orderlist").innerHTML=allOrders().map(o=>`<option value="${esc(o.no)}">`).join("")}catch{}
-  const cnt={trips:S.customers.filter(c=>custStage(c).k==="trip").length,orders:allOrders().filter(o=>ordStatus(o)[2]!=="closed").length,invoices:S.invoices.length,customers:S.customers.length,bills:S.bills.length,suppliers:S.suppliers.length,expenses:S.expenses.length,employees:S.employees.length,tasks:S.tasks.filter(t=>t.status!=="done"&&(can("tasks")?true:t.assignee===ME.id)).length,leads:(visible("leads")?(S.leads||[]):[]).filter(l=>l.ownerId===ME.id&&leadDue(l)).length||"",requests:(S.requests||[]).filter(r=>r.status==="pending"&&(ME.admin||r.byId===ME.id)).length||"",vo:scAll().filter(x=>x.status==="pending"||(x.status==="doing"&&x.takenById===ME.id)).length||"",mkt:(((can("voices")||dsMan())?dsAll().filter(x=>!x.design||(x.design==="doing"&&x.designTakenById===ME.id)).length:0)+(visible("vo")&&!ME.admin?scAll().filter(x=>(x.status||"pending")==="pending"||(x.status==="doing"&&x.takenById===ME.id)).length:0))||""};
+  const cnt={trips:S.customers.filter(c=>custStage(c).k==="trip").length,orders:allOrders().filter(o=>ordStatus(o)[2]!=="closed").length,invoices:S.invoices.length,customers:S.customers.length,bills:S.bills.length,suppliers:S.suppliers.length,expenses:S.expenses.length,employees:S.employees.length,tasks:S.tasks.filter(t=>t.status!=="done"&&(can("tasks")?true:t.assignee===ME.id)).length,leads:(visible("leads")?(S.leads||[]):[]).filter(l=>l.ownerId===ME.id&&leadDue(l)).length||"",requests:(S.requests||[]).filter(r=>r.status==="pending"&&(ME.admin||r.byId===ME.id)).length||"",trash:(S.trash||[]).length||"",vo:scAll().filter(x=>x.status==="pending"||(x.status==="doing"&&x.takenById===ME.id)).length||"",mkt:(((can("voices")||dsMan())?dsAll().filter(x=>!x.design||(x.design==="doing"&&x.designTakenById===ME.id)).length:0)+(visible("vo")&&!ME.admin?scAll().filter(x=>(x.status||"pending")==="pending"||(x.status==="doing"&&x.takenById===ME.id)).length:0))||""};
   let g="",nav=`<div class="brand">${st.logo?`<img src="${st.logo}" alt="">`:`<div class="mk">${esc((st.name||"ش").trim().charAt(0))}</div>`}<div><b>${esc(st.name||"شركتك")}</b><small>نظام إدارة الشركة</small></div></div>`;
   MODS.filter(m=>visible(m.k)&&!m.hide).forEach(m=>{if(m.g!==g){g=m.g;if(g)nav+=`<div class="ng">${g}</div>`}const lbl=m.k==="tasks"&&!can("tasks")?"مهامي":m.k==="attendance"&&!can("attendance")?"حضوري":m.k==="leads"&&!ME.admin?"عملائي":m.k==="requests"&&!ME.admin?"طلباتي":m.l;nav+=`<a href="#${m.k}" class="${view===m.k||(m.k==="mkt"&&["scripts","vo","voices"].includes(view))?"on":""}">${ic(m.i)}<span>${lbl}</span>${cnt[m.k]?`<span class="cnt">${cnt[m.k]}</span>`:""}</a>`});
   nav+=`<div class="side-foot">${mode==="db"?"البيانات محفوظة ومتزامنة":"وضع تجريبي على هذا الجهاز"}</div>`;
-  const fn={vouchers:vVouchers,docs:vDocs,dashboard:vDash,tasks:vTasks,trips:vTrips,orders:vOrders,invoices:vInvoices,customers:vCustomers,bills:vBills,suppliers:vSuppliers,expenses:vExpenses,employees:vEmployees,attendance:vAttendance,payroll:vPayroll,vat:vVat,activity:vActivity,leads:vLeads,packages:vPackages,mkt:vMkt,scripts:()=>{mktTab="script";return vMkt()},vo:()=>{mktTab="vo";return vMkt()},voices:()=>{mktTab="design";return vMkt()},requests:vRequests,users:vUsers,company:vCompany}[view];
+  const fn={vouchers:vVouchers,docs:vDocs,dashboard:vDash,tasks:vTasks,trips:vTrips,orders:vOrders,invoices:vInvoices,customers:vCustomers,bills:vBills,suppliers:vSuppliers,expenses:vExpenses,employees:vEmployees,attendance:vAttendance,payroll:vPayroll,vat:vVat,activity:vActivity,leads:vLeads,packages:vPackages,mkt:vMkt,scripts:()=>{mktTab="script";return vMkt()},vo:()=>{mktTab="vo";return vMkt()},voices:()=>{mktTab="design";return vMkt()},requests:vRequests,trash:vTrash,users:vUsers,company:vCompany}[view];
   let top="";
-  if(["dashboard","leads","packages","requests"].includes(view))top+=rulesBanner();
+  if(["dashboard","leads","packages","requests","trash"].includes(view))top+=rulesBanner();
   if(false)top+=`<div class="banner">البيانات هنا محفوظة على هذا الجهاز فقط. افتح النظام من رابطه على Claude لتُحفظ بشكل دائم ويستخدمه فريقك.</div>`;
   if(false)top+=`<div class="banner">حسابك على Claude بصلاحية عرض فقط، فلا يمكن حفظ أي تعديل. اطلب من مالك النظام صلاحية Contributor.</div>`;
   if(ME.admin&&!st.name&&view!=="company")top+=`<div class="banner info">ابدأ بإدخال بيانات الشركة والشعار من <a href="#company">بيانات الشركة</a> لتظهر على الفواتير والتقارير.</div>`;
@@ -1918,7 +2003,7 @@ function paxForm(pid,gid){
 async function paxSave(pid,gid){const p=pid?(S.travelers||[]).find(x=>x.id===pid):null;const v=k=>$("#pf_"+k).value.trim();
   const d={...(p||{orderNo:groupNo(gid),ai:false,by:ME.name,at:new Date().toISOString()}),givenNames:v("givenNames"),surname:v("surname"),nationality:v("nationality"),passportNo:v("passportNo").replace(/\s+/g,"").toUpperCase(),dob:v("dob"),expiry:v("expiry"),sex:$("#pf_sex").value,checked:true};delete d.id;
   if(!d.givenNames&&!d.surname)return toast("اكتب الاسم");try{await put("travelers",pid||uid(),d);toast("تم الحفظ");setTimeout(()=>docDetail(gid),60)}catch{}}
-async function paxDel(pid){const p=(S.travelers||[]).find(x=>x.id===pid);if(!p)return;await del("travelers",pid);if(p.asset)try{if(ASSETS)await ASSETS.delete(p.asset.assetId)}catch{}toast("تم حذف الجواز")}
+async function paxDel(pid){const p=(S.travelers||[]).find(x=>x.id===pid);if(!p)return;await del("travelers",pid);if(p.asset)fDel({asset:p.asset.assetId});toast("تم حذف الجواز")}
 function paxRowsFor(id){const k=decodeURIComponent(id);return (S.travelers||[]).filter(p=>okey(p.orderNo)===k).sort((a,b)=>(a.at||"").localeCompare(b.at||""))}
 function paxCsvRows(id){return[["#","Given Names","Surname","Nationality","Date of Birth","Sex","Passport No.","Expiry Date","Order No."],...paxRowsFor(id).map((p,i)=>[i+1,p.givenNames||"",p.surname||"",p.nationality||"",p.dob||"",p.sex||"",p.passportNo||"",p.expiry||"",p.orderNo])]}
 function paxPdfHTML(id){
@@ -2270,7 +2355,7 @@ async function rmPayment(kind,id,pid,i){
   const isRef=kind==="ref";const col=kind==="bill"?"bills":"invoices";const fld=isRef?"refunds":"payments";const doc=S[col].find(x=>x.id===id);if(!doc)return;const ps=[...(doc[fld]||[])];
   const k=pid?ps.findIndex(p=>p.pid===pid):i;if(k<0||k>=ps.length)return;const p=ps.splice(k,1)[0];
   const data={...doc,[fld]:ps};delete data.id;await put(col,id,data);
-  for(const f of (S.ofiles||[]).filter(f=>p.pid&&f.payId===p.pid)){await del("ofiles",f.id);try{if(ASSETS)await ASSETS.delete(f.assetId)}catch{}}
+  for(const f of (S.ofiles||[]).filter(f=>p.pid&&f.payId===p.pid)){await del("ofiles",f.id);fDel({asset:f.assetId})}
   toast("تم حذف الدفعة");if(OPEN&&OPEN.type==="order")orderDetail(OPEN.id);
 }
 const MIME={pdf:"application/pdf",png:"image/png",jpg:"image/jpeg",jpeg:"image/jpeg",webp:"image/webp",gif:"image/gif"};
@@ -2285,7 +2370,7 @@ async function ofUpload(id){
 }
 async function ofDownload(fid){const f=(S.ofiles||[]).find(x=>x.id===fid);if(!f)return;if(!DL)return toast("التحميل غير متاح");
   try{busy("جاري التحميل…");const r=await fetch(fileUrl(f));if(!r.ok)throw 0;const b=await r.blob();busy(null);await DL.save({filename:`${safeName(f.orderNo)}_${f.name}`,data:b});toast("تم حفظ الملف")}catch(e){busy(null);if(!e||e.code!=="declined")toast("تعذر تحميل الملف")}}
-async function ofDelete(fid){const f=(S.ofiles||[]).find(x=>x.id===fid);if(!f)return;await del("ofiles",fid);try{if(ASSETS)await ASSETS.delete(f.assetId)}catch{}toast("تم حذف المرفق")}
+async function ofDelete(fid){const f=(S.ofiles||[]).find(x=>x.id===fid);if(!f)return;await del("ofiles",fid);fDel({asset:f.assetId});toast("تم حذف المرفق")}
 async function orderZip(id,direct){
   if(!direct){const o=allOrders().find(x=>x.id===id);return previewZip(`${o?o.no:""}.zip`,orderZipList(id),"orderZip",id)}
   const o=allOrders().find(x=>x.id===id);if(!o)return;if(!DL)return toast("التحميل غير متاح");if(!window.html2pdf)return toast("تعذر تحميل أداة PDF، أعد فتح الصفحة");
@@ -3183,7 +3268,7 @@ function reqDetail(id){const r=(S.requests||[]).find(x=>x.id===id);if(!r)return 
    <div class="foot" style="flex-wrap:wrap;gap:8px">${adm&&r.status==="pending"?`<button class="primary" data-act="reqDecide" data-id="${r.id}" data-v="approved">${r.type==="del"?"✅ موافقة واحذف":"✅ موافقة"}</button><button class="danger" data-act="reqDecide" data-id="${r.id}" data-v="rejected">❌ رفض</button>`:""}${r.status==="pending"&&r.byId===ME.id?`<button class="danger" data-act="reqCancel" data-id="${r.id}">إلغاء الطلب</button>`:""}<button data-act="close">إغلاق</button></div>`)}
 function delPreview(r){const I=delInfo(r.delAct,r.delData||{},r.delCtx||{});const ok=I.exists&&I.sig===r.delSig;const ref=r.delRef||{};
   return `<div style="background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0"><div class="muted" style="font-size:12px">اللي هيتحذف · ${esc(DEL_LBL[r.delAct]||"")}</div><b style="font-size:15px">${esc(I.title!=="—"?I.title:(r.subject||""))}</b>
-   ${(r.delSnap||[]).length?`<table class="t" style="margin-top:6px"><tbody>${r.delSnap.map(([k,v])=>`<tr><td class="muted" style="font-size:12px">${esc(k)}</td><td style="font-size:12.5px">${esc(v)}</td></tr>`).join("")}</tbody></table>`:""}
+   ${(r.delSnap||[]).length?`<table class="t" style="margin-top:6px"><tbody>${r.delSnap.map(e=>Array.isArray(e)?e:[e.k,e.v]).map(([k,v])=>`<tr><td class="muted" style="font-size:12px">${esc(k)}</td><td style="font-size:12.5px">${esc(v)}</td></tr>`).join("")}</tbody></table>`:""}
    <div style="margin-top:8px">${ok?`<span class="pill p-ok">✓ العنصر موجود زي ما هو</span>`:`<span class="pill p-bad">⚠️ العنصر اتغير أو اتحذف من وقت الطلب</span>`} ${ref.col&&ref.id?`<button class="sm" data-act="delSee" data-k="${esc(ref.col)}" data-id="${esc(ref.id)}">👁 افتح مكانه</button>`:""}</div></div>`}
 async function reqDecide(id,v){const r=(S.requests||[]).find(x=>x.id===id);if(!r||!reqAll())return;
   if(r.type==="del"){const reply=($("#rq_reply")||{}).value||"";if(v==="approved"){const ok=await delExec(r);if(!ok)return}
@@ -3274,7 +3359,17 @@ document.addEventListener("click",async e=>{
   if(PRINT_ACTS.has(a)&&!canPrint()){toast("الطباعة غير متاحة لحسابك");return}
   if((DEL_ACTS.has(a)||a==="rmP")&&!(ME&&ME.admin)){if(DEL_ADMIN.has(a)){toast("الحذف ده لمدير النظام بس");return}
     if(!canDel(delModOf(a,t.dataset,delCtx()))){delReqDlg(a,t);return}}
+  if(TR_VER_ACTS.has(a)){try{const _c=delCtx(),_I=delInfo(a,delData(t),_c);if(_I.exists)window.__trVer={col:_I.col,id:_I.id,what:(DEL_LBL[a]||"")+(_I.title&&_I.title!=="—"?": "+_I.title:""),t:Date.now()}}catch{}}
   switch(a){
+    case "trView":trView(id);break;
+    case "trRestore":{const e=(S.trash||[]).find(x=>x.id===id);if(!e||!ME.admin)break;const cur=(S[e.col]||[]).find(x=>x.id===e.docId);
+      if(e.kind==="doc"&&cur&&!t.dataset.ok){t.dataset.ok="1";const o=t.textContent;t.textContent="⚠️ متأكد؟ اضغط تاني";setTimeout(()=>{if(t.isConnected){t.dataset.ok="";t.textContent=o}},4000);break}
+      try{const res=await trRestore(e);closeModal();render();trDone(e,res)}catch(err){handleErr(err)}break}
+    case "trOpen":closeModal();actOpen({col:t.dataset.col,ref:id});break;
+    case "trPurge":{const e=(S.trash||[]).find(x=>x.id===id);if(!e||!ME.admin)break;if(!t.dataset.ok){t.dataset.ok="1";t.textContent="⚠️ مش هيرجع تاني — اضغط تاني";setTimeout(()=>{if(t.isConnected){t.dataset.ok="";t.textContent="حذف نهائي"}},4000);break}
+      try{await trPurge(e);closeModal();toast("اتحذف نهائي");render()}catch(err){handleErr(err)}break}
+    case "trEmpty":{if(!ME.admin)break;const all=[...(S.trash||[])];if(!all.length)break;if(!t.dataset.ok){t.dataset.ok="1";t.textContent=`⚠️ هيتحذف ${all.length} عنصر نهائي — اضغط تاني`;setTimeout(()=>{if(t.isConnected){t.dataset.ok="";t.textContent=`🗑 تفريغ السلة (${all.length})`}},5000);break}
+      busy(`جاري تفريغ السلة…`);let n=0;try{for(let i=0;i<all.length;i+=20){await Promise.all(all.slice(i,i+20).map(e=>trPurge(e).then(()=>n++).catch(()=>{})))}}finally{busy(null)}toast(`🗑 اتفرّغت السلة (${n})`);render();break}
     case "menu":menuOpen=!menuOpen;render();break;
     case "logout":logout();break;
     case "chpw":menuOpen=false;render();modal(`<h2>تغيير كلمة المرور</h2><div class="grid2"><label class="f full">كلمة المرور الحالية<input type="password" id="cp_old" dir="ltr"></label><label class="f">الجديدة<input type="password" id="cp_new" dir="ltr"></label><label class="f">تأكيد الجديدة<input type="password" id="cp_new2" dir="ltr"></label></div><div class="foot"><button class="primary" data-act="chpwOk">حفظ</button><button data-act="close">إلغاء</button></div>`);break;
@@ -3438,7 +3533,7 @@ document.addEventListener("click",async e=>{
     case "scNew":scForm(null);break;
     case "scEdit":scForm(id);break;
     case "scSave":scSave(t.dataset.id||null);break;
-    case "scDel":{if(t.dataset.ok!=="1"){t.dataset.ok="1";t.textContent="⚠️ متأكد؟ اضغط تاني";setTimeout(()=>{if(t.isConnected){t.dataset.ok="";t.textContent="🗑 حذف"}},4000);break}const o=scAll().find(x=>x.id===id);if(!o)break;try{await del("packages",id);if(o.audioId)ASX.delete(o.audioId);if(o.audioGid)drvDel(o.audioGid);(o.dfiles||[]).forEach(f=>{if(f.gid)drvDel(f.gid);else ASX.delete(f.id)});toast("اتحذف")}catch{}break}
+    case "scDel":{if(t.dataset.ok!=="1"){t.dataset.ok="1";t.textContent="⚠️ متأكد؟ اضغط تاني";setTimeout(()=>{if(t.isConnected){t.dataset.ok="";t.textContent="🗑 حذف"}},4000);break}const o=scAll().find(x=>x.id===id);if(!o)break;try{await del("packages",id);if(o.audioId)fDel({asx:o.audioId});if(o.audioGid)fDel({gid:o.audioGid});(o.dfiles||[]).forEach(f=>fDel(f.gid?{gid:f.gid}:{asx:f.id}));toast("اتحذف")}catch{}break}
     case "scTake":{const o=scAll().find(x=>x.id===id);if(!o||(o.status||"pending")!=="pending")break;await scSet(id,{status:"doing",takenBy:ME.name,takenById:ME.id,takenAt:new Date().toISOString()},"✋ استلمت الطلب — هتلاقيه في «جاري التنفيذ»");scTab="doing";render();break}
     case "scBack":await scSet(id,{status:"pending",takenBy:"",takenById:"",takenAt:""},"رجع لبانتظار التنفيذ");break;
     case "scUp":scUpload(id);break;
@@ -3449,12 +3544,12 @@ document.addEventListener("click",async e=>{
     case "drNew":drForm(null);break;
     case "drEdit":drForm(id);break;
     case "drSave":drSave(t.dataset.id||null);break;
-    case "drDel":{if(t.dataset.ok!=="1"){t.dataset.ok="1";t.textContent="⚠️ متأكد؟ اضغط تاني";setTimeout(()=>{if(t.isConnected){t.dataset.ok="";t.textContent="🗑 حذف"}},4000);break}const o=(S.packages||[]).find(x=>x.id===id);if(!o)break;try{await del("packages",id);(o.dfiles||[]).forEach(f=>{if(f.gid)drvDel(f.gid);else ASX.delete(f.id)});toast("اتحذف")}catch{}break}
+    case "drDel":{if(t.dataset.ok!=="1"){t.dataset.ok="1";t.textContent="⚠️ متأكد؟ اضغط تاني";setTimeout(()=>{if(t.isConnected){t.dataset.ok="";t.textContent="🗑 حذف"}},4000);break}const o=(S.packages||[]).find(x=>x.id===id);if(!o)break;try{await del("packages",id);(o.dfiles||[]).forEach(f=>fDel(f.gid?{gid:f.gid}:{asx:f.id}));toast("اتحذف")}catch{}break}
     case "dsUp":dsUpDlg(id);break;
     case "dsUpGo":dsUpGo(id);break;
     case "dsDl":{const o=(S.packages||[]).find(x=>x.id===id);if(!o)break;const gf=(o.dfiles||[])[+t.dataset.k];if(gf&&gf.gid){window.open(gDl(gf.gid),"_blank","noopener");break}toast("جاري تجهيز الملف…");const r=await dsGetFile(o,+t.dataset.k);if(!r)break;const ext=(r.f.name||"").split(".").pop()||"jpg";await DLX.save({filename:dsName(o,+t.dataset.k,(o.dfiles||[]).length,ext),data:r.b});break}
     case "dsDlAll":{const o=(S.packages||[]).find(x=>x.id===id);if(!o)break;const F=o.dfiles||[];if(F.some(f=>f.gid)&&o.dfolder){window.open(o.dfolder,"_blank","noopener");toast("اتفتح فولدر الدرايف — اضغط «تنزيل الكل» من هناك");break}toast(`جاري تحميل ${F.length} ملف…`);for(let k=0;k<F.length;k++){if(F[k].gid){window.open(gDl(F[k].gid),"_blank","noopener");await new Promise(z=>setTimeout(z,700));continue}const r=await dsGetFile(o,k);if(!r)continue;const ext=(r.f.name||"").split(".").pop()||"jpg";await DLX.save({filename:dsName(o,k,F.length,ext),data:r.b});await new Promise(z=>setTimeout(z,600))}break}
-    case "dsRm":{const o=(S.packages||[]).find(x=>x.id===id);if(!o)break;if(t.dataset.ok!=="1"){t.dataset.ok="1";t.textContent="⚠️";setTimeout(()=>{if(t.isConnected){t.dataset.ok="";t.textContent="🗑"}},3000);break}const k=+t.dataset.k;const f=(o.dfiles||[])[k];await dsSet(id,{dfiles:(o.dfiles||[]).filter((_,n)=>n!==k)},"اتحذف الملف");if(f){if(f.gid)drvDel(f.gid);else ASX.delete(f.id)}break}
+    case "dsRm":{const o=(S.packages||[]).find(x=>x.id===id);if(!o)break;if(t.dataset.ok!=="1"){t.dataset.ok="1";t.textContent="⚠️";setTimeout(()=>{if(t.isConnected){t.dataset.ok="";t.textContent="🗑"}},3000);break}const k=+t.dataset.k;const f=(o.dfiles||[])[k];await dsSet(id,{dfiles:(o.dfiles||[]).filter((_,n)=>n!==k)},"اتحذف الملف");if(f)fDel(f.gid?{gid:f.gid}:{asx:f.id});break}
     case "dsView":{const o=(S.packages||[]).find(x=>x.id===id);if(!o)break;const f=(o.dfiles||[])[+t.dataset.k];if(!f)break;if(f.gid){window.open(f.link||gDl(f.gid),"_blank","noopener");break}toast("جاري الفتح…");const u=await blobUrl(f.id);if(!u)break;
       if(f.kind==="img")photoView(u,dsName(o,+t.dataset.k,(o.dfiles||[]).length,(f.name||"").split(".").pop()||"jpg"));else modal(`<h2>🎬 ${esc(o.title||"")}</h2><video src="${u}" controls playsinline style="width:100%;max-height:70vh;border-radius:10px;background:#000"></video><div class="foot"><button class="primary" data-act="dsDl" data-id="${o.id}" data-k="${t.dataset.k}">⬇️ تحميل</button><button data-act="close">إغلاق</button></div>`,"wide");break}
     case "vcBack":await dsSet(id,{design:"",designTakenBy:"",designTakenById:"",designTakenAt:""},"رجع لبانتظار الاستلام");break;
@@ -3600,6 +3695,7 @@ document.addEventListener("input",e=>{const t=e.target;
   if(t.id==="li_user"){clearTimeout(liT);liT=setTimeout(liLookup,350)}
   if(VD&&t.dataset.vday!=null){vDayInput(t);return}
   if(t.id==="gq"){GQ=t.value;render();return}
+  if(t.id==="trQ"){trQ=t.value;clearTimeout(qTimer);qTimer=setTimeout(render,150);return}
   if(t.dataset.lq){UI[t.dataset.lq].q=t.value;clearTimeout(qTimer);qTimer=setTimeout(render,120)}
   if(t.dataset.lf&&t.tagName==="INPUT"){UI[t.dataset.lf].f[t.dataset.fk]=t.value;clearTimeout(qTimer);qTimer=setTimeout(render,250)}
 });
@@ -3617,6 +3713,7 @@ document.addEventListener("change",async e=>{const t=e.target;
   if(t.id==="attDate"){attDate=t.value||today();render()}
   if(t.id==="attMonth"){attMonth=t.value||monthOf(today());render()}
   if(t.id==="actF"){actF=t.value;render()}
+  if(t.id==="trF"){trF=t.value;render()}
   if(t.id==="actDay"){actDay=t.value;render()}
   if(t.id==="payMonth"){payMonth=t.value||monthOf(today());render()}
   if(t.id==="vatFrom"){vatFrom=t.value;render()}
