@@ -980,7 +980,7 @@ const CLIENT_LISTS=new Set(["customers","trips","orders","invoices","vouchers","
 const prLvl=()=>!ME?"none":ME.admin?"all":((ME.perms||{}).print||"clients");
 const canPrint=()=>prLvl()!=="none";
 const canExport=k=>{const l=prLvl();return l==="all"||(l==="clients"&&CLIENT_LISTS.has(k))};
-const PRINT_ACTS=new Set(["lpdf","lcsv","pdfqAll","pkPrint","qPrintBtn","qPrint","pkDraftPrint","invPdf","invPdf0","vPdf","paxPdf","invPdfId","orderPdf","vatPdf","vatCsv","attEmpPdf","supPdf","custPdf","pdfDl","sendWa"]);
+const PRINT_ACTS=new Set(["lpdf","lcsv","pdfqAll","pkPrint","qPrintBtn","qPrint","pkDraftPrint","invPdf","invPdf0","vatZip","vPdf","paxPdf","invPdfId","orderPdf","vatPdf","vatCsv","attEmpPdf","supPdf","custPdf","pdfDl","sendWa"]);
 function listView(o){
   if(o.wa)o={...o,cols:[...o.cols,{h:"واتساب",uiOnly:1,t:()=>"",v:r=>{const w=o.wa(r);return w&&w.phone?waA(w.phone,w.msg,""):""}}]};
   const u=UI[o.key]||(UI[o.key]={q:"",f:{},from:"",to:""});
@@ -1521,7 +1521,7 @@ function custPdf(id){const c=S.customers.find(x=>x.id===id);const s=custStats(id
 const SUPTYPES=["طيران","فنادق","نقل ومواصلات","رحلات وجولات","تأشيرات","تأمين سفر","أخرى"];
 const F_SUP=[{k:"name",l:"اسم المورد",req:1},{k:"type",l:"النوع",t:"select",o:SUPTYPES},{k:"phone",l:"الهاتف"},{k:"email",l:"البريد"},{k:"trn",l:"الرقم الضريبي"},{k:"country",l:"الدولة",list:"countries"},{k:"terms",l:"مهلة السداد المعتادة (يوم)",t:"number",def:7},{k:"bank",l:"بيانات الحساب البنكي",t:"textarea",full:1}];
 const SVC=["فنادق","انتقالات","جولات","تذاكر طيران","تذاكر قطار","تأجير سيارات","تأشيرات","تأمين سفر","أخرى"];
-const SUPPAYM=["كاش","تحويل بنكي","لينك دفع","Paysend","ويسترن يونيون","موني جرام","أخرى"];
+const SUPPAYM=["كاش","تحويل بنكي","تابي","تمارا","لينك دفع","Paysend","ويسترن يونيون","موني جرام","أخرى"];
 function F_BILL(){return[{k:"orderNo",l:"رقم الأوردر",list:"orderlist",hint:"اختر أوردر موجود أو اكتب الرقم"},{k:"supplierId",l:"المورد",t:"select",o:S.suppliers.map(s=>[s.id,s.name]),req:1},{k:"customerId",l:"العميل المرتبط",t:"select",o:[["","— بدون —"],...S.customers.map(c=>[c.id,c.name])]},{k:"billNo",l:"رقم فاتورة المورد"},{k:"date",l:"تاريخ الفاتورة",t:"date",def:today(),req:1},{k:"dueDate",l:"تاريخ الاستحقاق",t:"date",def:addDays(today(),7),req:1},{k:"net",l:"المبلغ قبل الضريبة",t:"number",req:1},{k:"vatRate",l:"الضريبة",t:"select",o:[["5","5%"],["0","0% / خارج النطاق"]],def:"5"},{k:"paid",l:"دفعة مبدئية للمورد (بدون إيصال)",t:"number",def:0,hint:"الدفعات بالإيصالات تتسجل من ملف الفاتورة بزر «دفعة»"},{k:"payMethod",l:"تم الدفع للمورد عن طريق",t:"select",o:SUPPAYM},{k:"services",l:"نوع الخدمة (اختر واحدة أو أكثر)",t:"checks",o:SVC,full:1},{k:"desc",l:"البيان (مثال: تذاكر طيران دبي-فيينا)",t:"textarea",full:1}]}
 function vSuppliers(){
   const rows=[];S.suppliers.forEach(s=>{const all=S.bills.filter(b=>b.supplierId===s.id);const curs=[...new Set(all.map(docCur))].sort();(curs.length?curs:[baseCur()]).forEach(cu=>{const bl=all.filter(b=>docCur(b)===cu);const open=bl.filter(b=>billCalc(b).due>0.004).sort((a,b)=>(a.dueDate||"9").localeCompare(b.dueDate||"9"));rows.push({...s,_cur:cu,_t:r2(bl.reduce((a,b)=>a+billCalc(b).total,0)),_d:r2(open.reduce((a,b)=>a+billCalc(b).due,0)),_n:open[0]?.dueDate||"",_c:new Set(bl.map(b=>b.customerId).filter(Boolean)).size})})});
@@ -1721,7 +1721,7 @@ function vVat(){
   const st=set(),v=vatData();const y=+vatFrom.slice(0,4);
   const qs=[0,1,2,3].map(q=>`<button class="sm ${vatFrom===`${y}-${pad(q*3+1)}-01`?"primary":""}" data-act="vatQ" data-v="${y}-${pad(q*3+1)}-15">الربع ${q+1}</button>`).join("");
   const tot=["8","11","14"];
-  return head("إقرار ضريبة القيمة المضافة","ملخص بنفس ترتيب خانات نموذج VAT201 على بوابة EmaraTax.",`${qs}<input type="date" id="vatFrom" value="${vatFrom}" style="width:auto"><span class="muted">إلى</span><input type="date" id="vatTo" value="${vatTo}" style="width:auto"><button data-act="vatPdf">${ic("print")}طباعة PDF</button><button data-act="vatCsv">${ic("dl")}Excel</button>`)+
+  return head("إقرار ضريبة القيمة المضافة","ملخص بنفس ترتيب خانات نموذج VAT201 على بوابة EmaraTax.",`${qs}<input type="date" id="vatFrom" value="${vatFrom}" style="width:auto"><span class="muted">إلى</span><input type="date" id="vatTo" value="${vatTo}" style="width:auto"><button data-act="vatPdf">${ic("print")}طباعة PDF</button><button data-act="vatCsv">${ic("dl")}Excel</button><button class="primary" data-act="vatZip">${ic("dl")}ملفات الفترة كاملة (ZIP) · ${vatOrders().length}</button>`)+
   `<div class="kpis"><div class="kpi"><span>ضريبة المخرجات (المبيعات)</span><b>${money(v.s5v)}</b></div><div class="kpi"><span>ضريبة المدخلات (المشتريات)</span><b>${money(v.pv)}</b></div><div class="kpi"><span>${v.net>=0?"صافي الضريبة المستحقة للدفع":"ضريبة قابلة للاسترداد"}</span><b class="${v.net>=0?"neg":"pos"}">${money(Math.abs(v.net))}</b><small>AED</small></div></div>
   ${v.conv.length?`<div class="banner info">💱 <b>${v.conv.length}</b> مستند بعملات تانية اتحولوا للدرهم بسعر صرف يوم كل مستند (من الإنترنت): ${v.conv.slice(0,8).map(x=>`${esc(x.k)} ${esc(x.no||"")} (${esc(x.cur)})`).join("، ")}${v.conv.length>8?"…":""}. الهيئة الاتحادية للضرائب بتعتمد سعر المصرف المركزي، فراجع الأرقام مع المحاسب.</div>`:""}
   ${v.other.length?`<div class="banner">⚠️ <b>${v.other.length}</b> مستند لسه سعر صرفه مجاش (اتأكد إن النت شغال) ومش داخلين في الأرقام: ${v.other.slice(0,8).map(x=>`${esc(x.k)} ${esc(x.no||"")} (${esc(x.cur)})`).join("، ")}</div>`:""}
@@ -1906,7 +1906,7 @@ function ordFilesHTML(o,id){
   if(can("bills"))o.bills.forEach(b=>{if(+b.paid)P.push({d:"out",doc:"bill",id:b.id,i:-1,p:{date:b.date,amount:+b.paid,method:"دفعة مبدئية"},cur:docCur(b),party:supName(b.supplierId),ref:b.billNo||""});(b.payments||[]).forEach((p,k)=>P.push({d:"out",doc:"bill",id:b.id,i:k,p,cur:docCur(b),party:supName(b.supplierId),ref:b.billNo||""}))});
   P.sort((a,b)=>(a.p.date||"").localeCompare(b.p.date||""));
   const ed=k=>k==="bill"?canW("bills"):canW("invoices");
-  const pay=`<div class="sec">الدفعات والإيصالات (الداخل والخارج)</div><div class="tablewrap solo" style="margin-bottom:8px"><table class="t"><thead><tr><th>الاتجاه</th><th>الطرف</th><th>التاريخ</th><th>الطريقة</th><th>الإيصال</th><th class="n">المبلغ</th><th></th></tr></thead><tbody>${P.length?P.map(x=>`<tr><td><span class="pill ${x.d==="in"?"p-ok":x.d==="ref"?"p-warn":"p-bad"}">${x.d==="in"?"وارد من العميل":x.d==="ref"?"مسترد للعميل":"صادر للمورد"}</span></td><td><b>${esc(x.party)}</b><div class="sub">${esc(x.ref)}</div></td><td class="muted">${dAr(x.p.date)}</td><td>${esc(x.p.method||"")}</td><td>${x.p.receipt?`<a href="/_blob/${esc(x.p.receipt.assetId)}" target="_blank" rel="noopener" style="color:var(--brand)">عرض</a>`:x.i>=0&&ed(x.doc)?`<button class="ghost sm" data-act="rcptAdd" data-k="${x.doc}" data-id="${x.id}" data-i="${x.i}">📎 ارفع</button>`:`<span class="muted">—</span>`}</td><td class="n ${x.d==="in"?"pos":"neg"}">${cm(x.p.amount,x.cur)}${payOrig(x.p)}</td><td>${x.i>=0&&ed(x.doc)?`<button class="ghost sm danger" data-act="rmP" data-k="${x.doc}" data-id="${x.id}" data-pid="${esc(x.p.pid||"")}" data-i="${x.i}">حذف</button>`:""}</td></tr>`).join(""):`<tr><td colspan="7" class="muted">لا توجد دفعات بعد. استخدم زر «دفعة» جنب أي فاتورة.</td></tr>`}</tbody></table></div>`;
+  const pay=`<div class="sec">الدفعات والإيصالات (الداخل والخارج)</div><div class="tablewrap solo" style="margin-bottom:8px"><table class="t"><thead><tr><th>الاتجاه</th><th>الطرف</th><th>التاريخ</th><th>الطريقة</th><th>الإيصال</th><th class="n">المبلغ</th><th></th></tr></thead><tbody>${P.length?P.map(x=>`<tr><td><span class="pill ${x.d==="in"?"p-ok":x.d==="ref"?"p-warn":"p-bad"}">${x.d==="in"?"وارد من العميل":x.d==="ref"?"مسترد للعميل":"صادر للمورد"}</span></td><td><b>${esc(x.party)}</b><div class="sub">${esc(x.ref)}</div></td><td class="muted">${dAr(x.p.date)}</td><td>${esc(x.p.method||"")}${x.p.note?`<div class="sub">📝 ${esc(x.p.note)}</div>`:""}${x.p.with?`<div class="sub">🔗 مشتركة مع: ${esc(x.p.with)}${x.p.grpTotal?` · إجمالي الإيصال ${cm(x.p.grpTotal,x.cur)}`:""}</div>`:""}</td><td>${x.p.receipt?`<a href="/_blob/${esc(x.p.receipt.assetId)}" target="_blank" rel="noopener" style="color:var(--brand)">عرض</a>`:x.i>=0&&ed(x.doc)?`<button class="ghost sm" data-act="rcptAdd" data-k="${x.doc}" data-id="${x.id}" data-i="${x.i}">📎 ارفع</button>`:`<span class="muted">—</span>`}</td><td class="n ${x.d==="in"?"pos":"neg"}">${cm(x.p.amount,x.cur)}${payOrig(x.p)}</td><td>${x.i>=0&&ed(x.doc)?`<button class="ghost sm danger" data-act="rmP" data-k="${x.doc}" data-id="${x.id}" data-pid="${esc(x.p.pid||"")}" data-i="${x.i}">حذف</button>`:""}</td></tr>`).join(""):`<tr><td colspan="7" class="muted">لا توجد دفعات بعد. استخدم زر «دفعة» جنب أي فاتورة.</td></tr>`}</tbody></table></div>`;
   return pay+`<div class="sec">المرفقات (فواتير الموردين، تذاكر، فاوتشرات، إيصالات)</div>
   ${up?`<div class="card" style="margin-bottom:8px"><div class="grid2"><label class="f">نوع الملف<select id="of_kind">${FKINDS.filter(k=>can("bills")||!SUPKINDS.includes(k)).map(k=>`<option>${k}</option>`).join("")}</select></label>${o.bills.length&&can("bills")?`<label class="f">مرتبط بفاتورة مورد (اختياري)<select id="of_bill"><option value="">—</option>${bl}</select></label>`:""}<label class="f">الملف (PDF أو صورة، حتى 20 MB)<input type="file" id="of_file" multiple accept="application/pdf,image/png,image/jpeg,image/webp,image/gif"></label></div><div class="foot" style="margin-top:10px"><button class="primary" data-act="ofUp" data-id="${id}">${ic("plus")}رفع وحفظ في الملف</button></div></div>`:`<p class="muted" style="font-size:12.5px">رفع المرفقات متاح لمن لديه صلاحية التعديل عند فتح النظام من رابطه.</p>`}
   <div class="tablewrap solo"><table class="t"><thead><tr><th>النوع</th><th>الاسم</th><th>الحجم</th><th>رفعه</th><th></th></tr></thead><tbody>${rows||`<tr><td colspan="5" class="muted">لا توجد مرفقات بعد</td></tr>`}</tbody></table></div>`;
@@ -2377,6 +2377,12 @@ function vVouchers(){
 }
 
 let PAYCTX=null;
+/* other unpaid supplier bills (same currency) a shared receipt can also pay; key = what the user types */
+function payBillOpts(doc){return(S.bills||[]).filter(b=>b.id!==doc.id&&docCur(b)===docCur(doc)&&billCalc(b).due>0.004).sort((a,b)=>(a.supplierId===doc.supplierId?0:1)-(b.supplierId===doc.supplierId?0:1)).map(b=>({id:b.id,k:b.billNo||`ملف ${b.orderNo||"—"} · ${supName(b.supplierId)}`,l:`${supName(b.supplierId)} · ملف ${b.orderNo||"—"} · متبقي ${cm(billCalc(b).due,docCur(b))}`}))}
+function pdTot(){const el=$("#pd_tot");if(!el||!PAYCTX)return;const doc=S.bills.find(x=>x.id===PAYCTX.id);const t=r2((+($("#pd_amt")||{}).value||0)+[...document.querySelectorAll("#pd_split .pd_a")].reduce((a,i)=>a+(+i.value||0),0));el.textContent=doc?cm(t,docCur(doc)):t}
+function pdSplitAdd(){const box=$("#pd_split");if(!box)return;const r=document.createElement("div");r.className="pdrow";r.style.cssText="display:flex;gap:6px;margin-bottom:6px;align-items:center";
+  r.innerHTML=`<input class="pd_no" list="pd_bills" placeholder="رقم الفاتورة التانية" dir="ltr" style="flex:2"><input class="pd_a" type="number" step="0.01" placeholder="المبلغ" style="flex:1"><button class="ghost sm danger" data-act="pdSplitRm">حذف</button>`;
+  box.appendChild(r);const no=r.querySelector(".pd_no"),am=r.querySelector(".pd_a");am.addEventListener("input",pdTot);no.addEventListener("change",()=>{const doc=S.bills.find(x=>x.id===PAYCTX.id);const o=payBillOpts(doc).find(x=>x.k.toLowerCase()===no.value.trim().toLowerCase());if(o&&!am.value){am.value=billCalc(S.bills.find(b=>b.id===o.id)).due;pdTot()}});no.focus()}
 function payDlg(kind,id,back){
   if(kind==="ref")return refDlg(id,back);
   const isInv=kind==="inv";const doc=(isInv?S.invoices:S.bills).find(x=>x.id===id);if(!doc)return;
@@ -2384,9 +2390,13 @@ function payDlg(kind,id,back){
   modal(`<h2>${isInv?`دفعة من العميل · فاتورة ${esc(doc.no)}`:`دفعة للمورد · ${esc(supName(doc.supplierId))}${doc.billNo?` · ${esc(doc.billNo)}`:""}`}</h2><p class="muted" style="margin:-8px 0 12px">${[isInv?esc(doc.customerName||""):"",ono?`ملف ${esc(ono)}`:""].filter(Boolean).join(" · ")}</p>
   <div class="stats"><div><span>إجمالي الفاتورة</span><b>${cm(c.total,docCur(doc))}</b></div><div><span>المدفوع سابقًا</span><b>${cm(c.paid,docCur(doc))}</b></div><div><span>المتبقي قبل الدفعة</span><b class="neg">${cm(c.due,docCur(doc))}</b></div><div><span>المتبقي بعد الدفعة</span><b id="pd_after">0.00</b></div></div>
   <div class="grid2"><label class="f">المبلغ المدفوع (من الإيصال)<input type="number" step="0.01" id="pd_amt" value="${c.due>0?c.due:""}"></label><label class="f">تاريخ الدفع<input type="date" id="pd_date" value="${today()}"></label><label class="f">طريقة الدفع<select id="pd_m">${M.map(p=>`<option>${p}</option>`).join("")}</select></label>${payCurHTML("pd",docCur(doc))}
-  ${ASSETS?`<label class="f full">📎 ارفع إيصال الدفع (اختياري — صورة أو PDF)<input type="file" id="pd_file" accept="application/pdf,image/png,image/jpeg,image/webp,image/gif"><small>بيتحفظ تلقائيًا في ملف الفاتورة ${esc(ono)}</small></label>`:`<p class="muted full" style="font-size:12.5px;margin:0">رفع الإيصال متاح عند فتح النظام من رابطه.</p>`}</div>
+  ${ASSETS?`<label class="f full">📎 ارفع إيصال الدفع (اختياري — صورة أو PDF)<input type="file" id="pd_file" accept="application/pdf,image/png,image/jpeg,image/webp,image/gif"><small>بيتحفظ تلقائيًا في ملف الفاتورة ${esc(ono)}</small></label>`:`<p class="muted full" style="font-size:12.5px;margin:0">رفع الإيصال متاح عند فتح النظام من رابطه.</p>`}
+  <label class="f full">📝 ملاحظة (اختيارية — بتظهر لك في البرنامج بس ومش بتتطبع)<input id="pd_note" placeholder="مثال: الدفعة اتحولت من حساب أخو العميل"></label></div>
+  ${isInv?"":`<div class="card" style="padding:12px;margin:10px 0"><b>🔗 مشاركة الدفعة مع فواتير مورد تانية</b><p class="muted" style="font-size:12.5px;margin:4px 0 8px">لو الإيصال ده دافع أكتر من فاتورة: اكتب رقم الفاتورة التانية والمبلغ اللي يخصها. المبلغ اللي فوق هو اللي يخص الفاتورة دي بس.</p>
+   <div id="pd_split"></div><datalist id="pd_bills">${payBillOpts(doc).map(x=>`<option value="${esc(x.k)}">${esc(x.l)}</option>`).join("")}</datalist>
+   <button class="ghost sm" data-act="pdSplitAdd">＋ فاتورة تانية</button><div class="muted" style="margin-top:6px;font-size:12.5px">إجمالي الإيصال: <b id="pd_tot">—</b></div></div>`}
   <div class="foot"><button class="primary" data-act="payDlgOk">حفظ الدفعة</button><button data-act="payDlgCancel">إلغاء</button></div>`);
-  const pa=$("#pd_amt");let pdv=null;const up=()=>{const v=pdv==null?(+pa.value||0):pdv;const a=r2(c.due-v);const el=$("#pd_after");el.textContent=cm(Math.max(a,0),docCur(doc));el.className=a>0.004?"neg":"pos"};pa.addEventListener("input",()=>{if(($("#pd_pc")||{}).value===docCur(doc))pdv=null;up()});
+  const pa=$("#pd_amt");let pdv=null;const up=()=>{const v=pdv==null?(+pa.value||0):pdv;const a=r2(c.due-v);const el=$("#pd_after");el.textContent=cm(Math.max(a,0),docCur(doc));el.className=a>0.004?"neg":"pos";pdTot()};pa.addEventListener("input",()=>{if(($("#pd_pc")||{}).value===docCur(doc))pdv=null;up()});
   payCurInit("pd",docCur(doc),"pd_amt","pd_date",v=>{pdv=v;up()});up();setTimeout(()=>pa.focus(),0);
 }
 /* upload a payment receipt (image / PDF) + register it in the order files */
@@ -2398,20 +2408,32 @@ async function rcptUp(f,m){const ext=(f.name.split(".").pop()||"").toLowerCase()
 function rcptPick(){return new Promise(res=>{const i=document.createElement("input");i.type="file";i.accept="application/pdf,image/png,image/jpeg,image/webp,image/gif";i.onchange=()=>res(i.files[0]||null);i.click()})}
 async function rcptAttach(k,id,idx){const isInv=k!=="bill";const col=isInv?"invoices":"bills";const doc=S[col].find(x=>x.id===id);if(!doc)return;const key=k==="ref"?"refunds":"payments";const arr=[...(doc[key]||[])];const p=arr[idx];if(!p)return;
   const f=await rcptPick();if(!f)return;const pid=p.pid||uid();const ono=isInv?ordInv(doc):(doc.orderNo||"");
-  const rc=await rcptUp(f,{ono,kind:k==="ref"?"إيصال استرداد":isInv?"إيصال دفع عميل":"إيصال دفع مورد",amount:p.amount,pid,docType:k==="ref"?"inv":k,docId:id});if(!rc)return;
+  const rc=await rcptUp(f,{ono,kind:k==="ref"?"إيصال استرداد للعميل":isInv?"إيصال دفع عميل":"إيصال دفع مورد",amount:p.amount,pid,docType:k==="ref"?"inv":k,docId:id});if(!rc)return;
   arr[idx]={...p,pid,receipt:rc};const data={...doc,[key]:arr};delete data.id;try{await put(col,id,data);toast("اترفع الإيصال ✓");
     if(OPEN&&OPEN.type==="order")orderDetail(OPEN.id);else if(OPEN&&OPEN.id===id&&isInv)showInvoice(id)}catch{}}
 async function payDlgSave(){
   if(!PAYCTX)return;const{kind,id,back}=PAYCTX;const isInv=kind==="inv";const col=isInv?"invoices":"bills";const doc=S[col].find(x=>x.id===id);if(!doc)return;
   const c=isInv?invCalc(doc):billCalc(doc);const raw=r2(+$("#pd_amt").value||0);if(!(raw>0))return toast("أدخل المبلغ اللي في الإيصال");const pc=payCurVal("pd",docCur(doc),raw);if(!pc)return toast("اكتب سعر الصرف");const amt=pc.amount;if(amt>c.due+0.01)return toast(`المبلغ أكبر من المتبقي (${cm(c.due,docCur(doc))})`);
-  const p={pid:uid(),date:$("#pd_date").value||today(),...pc,method:$("#pd_m").value,by:ME.name};const ono=isInv?ordInv(doc):(doc.orderNo||"");
+  const note=(($("#pd_note")||{}).value||"").trim();
+  const p={pid:uid(),date:$("#pd_date").value||today(),...pc,method:$("#pd_m").value,by:ME.name,...(note?{note}:{})};const ono=isInv?ordInv(doc):(doc.orderNo||"");
+  /* shared supplier receipt → split rows */
+  const opts=isInv?[]:payBillOpts(doc);const split=[];
+  for(const r of document.querySelectorAll("#pd_split .pdrow")){const k=r.querySelector(".pd_no").value.trim(),a=r2(+r.querySelector(".pd_a").value||0);if(!k&&!a)continue;
+    const o=opts.find(x=>x.k.toLowerCase()===k.toLowerCase());if(!o)return toast(`الفاتورة «${k}» مش موجودة أو مدفوعة بالكامل أو بعملة تانية`);if(!(a>0))return toast(`اكتب مبلغ فاتورة ${k}`);
+    const b=S.bills.find(x=>x.id===o.id);const due=billCalc(b).due;if(a>due+0.01)return toast(`مبلغ فاتورة ${k} أكبر من المتبقي (${cm(due,docCur(b))})`);if(split.some(x=>x.b.id===b.id))return toast(`فاتورة ${k} متكررة`);split.push({b,a,k})}
+  if(split.length){p.grp=uid();const lbl=b=>b.billNo||`ملف ${b.orderNo||"—"}`;p.with=split.map(x=>lbl(x.b)).join("، ");p.grpTotal=r2(amt+split.reduce((s,x)=>s+x.a,0))}
   const f=$("#pd_file")&&$("#pd_file").files[0];
   if(f){const ext=(f.name.split(".").pop()||"").toLowerCase();const type=MIME[ext]||f.type;if(!Object.values(MIME).includes(type))return toast("الإيصال لازم يكون PDF أو صورة");
     busy("جاري رفع الإيصال…");try{const r=await ASSETS.upload(f,{type});p.receipt={assetId:r.id,name:f.name};
       await put("ofiles",uid(),{orderNo:ono,orderKey:okey(ono),name:f.name,assetId:r.id,contentType:r.contentType,size:r.sizeBytes,kind:isInv?"إيصال دفع عميل":"إيصال دفع مورد",amount:amt,payId:p.pid,docType:kind,docId:id,billId:isInv?"":id,by:ME.name,at:new Date().toISOString()})}
     catch(e){busy(null);const cd=e&&e.code;return toast(cd==="too_large"?"الإيصال أكبر من 20 MB":"تعذر رفع الإيصال، حاول مرة أخرى")}busy(null)}
   const data={...doc,payments:[...(doc.payments||[]),p]};delete data.id;
-  try{await put(col,id,data);PAYCTX=null;toast(`تم تسجيل ${money(amt)} وخصمها من ${isInv?"حساب العميل":"حساب المورد"}`);setTimeout(()=>backTo(back),60)}catch{}
+  try{await put(col,id,data);
+    if(split.length){const lbl=b=>b.billNo||`ملف ${b.orderNo||"—"}`;const ratio=pc.origCur&&pc.amount?pc.origAmt/pc.amount:null;
+      for(const x of split){const q={...p,pid:uid(),amount:x.a,with:[lbl(doc),...split.filter(y=>y!==x).map(y=>lbl(y.b))].join("، ")};if(ratio){q.origAmt=r2(x.a*ratio)}else{delete q.origCur;delete q.origAmt;delete q.rate}
+        if(p.receipt)await put("ofiles",uid(),{orderNo:x.b.orderNo||"",orderKey:okey(x.b.orderNo||""),name:p.receipt.name,assetId:p.receipt.assetId,contentType:(f&&f.type)||"",size:(f&&f.size)||0,kind:"إيصال دفع مورد",amount:x.a,payId:q.pid,docType:"bill",docId:x.b.id,billId:x.b.id,by:ME.name,at:new Date().toISOString()});
+        const d2={...x.b,payments:[...(x.b.payments||[]),q]};delete d2.id;await put("bills",x.b.id,d2)}}
+    PAYCTX=null;toast(split.length?`تم تسجيل الدفعة على ${split.length+1} فواتير (إجمالي ${money(p.grpTotal)})`:`تم تسجيل ${money(amt)} وخصمها من ${isInv?"حساب العميل":"حساب المورد"}`);setTimeout(()=>backTo(back),60)}catch{}
 }
 function refDlg(id,back){
   const inv=S.invoices.find(x=>x.id===id);if(!inv)return;const c=invCalc(inv);PAYCTX={kind:"ref",id,back};OPEN=null;const ono=ordInv(inv);
@@ -2450,8 +2472,8 @@ async function rmPayment(kind,id,pid,i){
   const isRef=kind==="ref";const col=kind==="bill"?"bills":"invoices";const fld=isRef?"refunds":"payments";const doc=S[col].find(x=>x.id===id);if(!doc)return;const ps=[...(doc[fld]||[])];
   const k=pid?ps.findIndex(p=>p.pid===pid):i;if(k<0||k>=ps.length)return;const p=ps.splice(k,1)[0];
   const data={...doc,[fld]:ps};delete data.id;await put(col,id,data);
-  for(const f of (S.ofiles||[]).filter(f=>p.pid&&f.payId===p.pid)){await del("ofiles",f.id);fDel({asset:f.assetId})}
-  toast("تم حذف الدفعة");if(OPEN&&OPEN.type==="order")orderDetail(OPEN.id);
+  for(const f of (S.ofiles||[]).filter(f=>p.pid&&f.payId===p.pid)){await del("ofiles",f.id);if(!(S.ofiles||[]).some(g=>g.id!==f.id&&g.assetId===f.assetId))fDel({asset:f.assetId})}
+  toast(p.grp?"تم حذف الدفعة من الفاتورة دي بس (الجزء اللي على الفواتير التانية لسه موجود)":"تم حذف الدفعة");if(OPEN&&OPEN.type==="order")orderDetail(OPEN.id);
 }
 const MIME={pdf:"application/pdf",png:"image/png",jpg:"image/jpeg",jpeg:"image/jpeg",webp:"image/webp",gif:"image/gif"};
 async function ofUpload(id){
@@ -2468,14 +2490,11 @@ async function ofDownload(fid){const f=(S.ofiles||[]).find(x=>x.id===fid);if(!f)
 async function ofDelete(fid){const f=(S.ofiles||[]).find(x=>x.id===fid);if(!f)return;await del("ofiles",fid);fDel({asset:f.assetId});toast("تم حذف المرفق")}
 const ZF_INV="الفواتير",ZF_DOC="الفاوتشرات والتذاكر والملفات";
 /* invoice-type files (in & out): supplier invoices, payment & refund receipts, anything attached to a supplier bill or an expense */
+const isCustRcpt=f=>!f.billId&&!f.expId&&(["إيصال دفع عميل","إيصال استرداد للعميل","إيصال دفع"].includes(f.kind)||(!!f.payId&&f.docType!=="bill"));
 const isInvFile=f=>SUPKINDS.includes(f.kind)||/إيصال|فاتورة/.test(f.kind||"")||!!f.billId||!!f.expId||!!f.payId;
 const zPart=id=>{const m=String(id).split("|");return{id:m[0],part:m[1]||""}};
-async function orderZip(rawId,direct){const{id,part}=zPart(rawId);
-  if(!direct){const o=allOrders().find(x=>x.id===id);return previewZip(`${o?o.no:""}${part==="inv"?"_"+ZF_INV:part==="doc"?"_"+ZF_DOC:""}.zip`,orderZipList(rawId),"orderZip",rawId)}
-  const o=allOrders().find(x=>x.id===id);if(!o)return;if(!DL)return toast("التحميل غير متاح");if(!window.html2pdf)return toast("تعذر تحميل أداة PDF، أعد فتح الصفحة");
-  try{busy("جاري تجهيز الملف…");if(!window.JSZip)await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js");
-    const z=new JSZip(),no=safeName(o.no),used=new Set();const nm=n=>{let x=n,i=2;while(used.has(x)){x=n.replace(/(\.[^.]+)?$/,m=>`_${i}${m}`);i++}used.add(x);return x};
-    const wantI=part!=="doc",wantD=part!=="inv";const FI=`${no}/${ZF_INV}/`,FD=`${no}/${ZF_DOC}/`;let miss=0;
+async function zipOrderInto(z,o,part,root,nm){const no=safeName(o.no);let miss=0;
+    const wantI=part!=="doc",wantD=part!=="inv";const FI=`${root}${ZF_INV}/`,FD=`${root}${ZF_DOC}/`;
     const addF=async(dir,f,pre)=>{busy(`جاري إضافة ${f.name}…`);try{const r=await fetch(fileUrl(f));if(!r.ok)throw 0;z.file(nm(`${dir}${pre||""}${safeName(f.name)}`),await r.blob())}catch{miss++}};
     if(wantI){for(const inv of o.inv){busy(`جاري تجهيز فاتورة ${inv.no}…`);z.file(nm(`${FI}${safeName(inv.no)}_Invoice.pdf`),await makePdfBlob(invoicePaper(invClean(inv)),false));if(invHasPay(inv))z.file(nm(`${FI}${safeName(inv.no)}_Invoice_Payments.pdf`),await makePdfBlob(invoicePaper(inv),false))}
       busy("جاري تجهيز الملخص…");z.file(nm(`${FI}${no}_Summary.pdf`),await makePdfBlob(orderSummaryHTML(o),true));
@@ -2484,10 +2503,28 @@ async function orderZip(rawId,direct){const{id,part}=zPart(rawId);
       const P=paxRowsFor(o.id);if(P.length){busy("جاري تجهيز PDF الجوازات…");try{z.file(nm(`${FD}${no}_Passports.pdf`),await makePdfBlob(paxPdfHTML(o.id),true))}catch{miss++}
         for(const px of P.filter(x=>x.asset)){try{const r=await fetch("/_blob/"+px.asset.assetId);if(!r.ok)throw 0;const b=await r.blob();const ext=(b.type.split("/")[1]||"jpg").replace("jpeg","jpg");z.file(nm(`${FD}Passports/${safeName([px.givenNames,px.surname].filter(Boolean).join("_")||"passport")}.${ext}`),b)}catch{miss++}}}
       for(const f of ordFilesVis(o).filter(f=>!isInvFile(f)))await addF(FD,f,`${FK_EN[f.kind]||"File"}_`)}
+    return miss}
+const zipNm=()=>{const used=new Set();return n=>{let x=n,i=2;while(used.has(x)){x=n.replace(/(\.[^.]+)?$/,m=>`_${i}${m}`);i++}used.add(x);return x}};
+async function orderZip(rawId,direct){const{id,part}=zPart(rawId);
+  if(!direct){const o=allOrders().find(x=>x.id===id);return previewZip(`${o?o.no:""}${part==="inv"?"_"+ZF_INV:part==="doc"?"_"+ZF_DOC:""}.zip`,orderZipList(rawId),"orderZip",rawId)}
+  const o=allOrders().find(x=>x.id===id);if(!o)return;if(!DL)return toast("التحميل غير متاح");if(!window.html2pdf)return toast("تعذر تحميل أداة PDF، أعد فتح الصفحة");
+  try{busy("جاري تجهيز الملف…");if(!window.JSZip)await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js");
+    const z=new JSZip(),no=safeName(o.no);const miss=await zipOrderInto(z,o,part,`${no}/`,zipNm());
     busy("جاري ضغط الملف…");const blob=await z.generateAsync({type:"blob"});busy(null);
     await DL.save({filename:`${no}${part==="inv"?"_"+ZF_INV:part==="doc"?"_"+ZF_DOC:""}.zip`,data:blob});toast(miss?`تم الحفظ، وتعذر إضافة ${miss} مرفق`:"تم حفظ الملف")}
   catch(e){busy(null);if(!e||e.code!=="declined")toast("تعذر تجهيز الملف")}
 }
+/* tax pack: every order that has a customer invoice or supplier bill dated in the VAT period → one ZIP, a folder per order */
+const vatPdfDoc=()=>({html:reportHTML("ملخص إقرار ضريبة القيمة المضافة",`الفترة من ${dAr(vatFrom)} إلى ${dAr(vatTo)}`,repTable([{h:"الخانة"},{h:"الوصف"},{h:"المبلغ",n:1},{h:"الضريبة",n:1}],vatRows().map(r=>[r[0],r[1],r[2]??"",r[3]??""]),null),false),land:false});
+const vatOrders=()=>allOrders().filter(o=>[...o.inv,...(o.bills||[])].some(d=>d.date&&d.date>=vatFrom&&d.date<=vatTo)).sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+async function vatZip(){const L=vatOrders();if(!L.length)return toast("مفيش ملفات فواتير في الفترة دي");if(!DL)return toast("التحميل غير متاح");if(!window.html2pdf)return toast("تعذر تحميل أداة PDF، أعد فتح الصفحة");
+  try{busy("جاري تجهيز ملف الضرايب…");if(!window.JSZip)await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js");
+    const z=new JSZip(),nm=zipNm(),top=`VAT_${vatFrom}_${vatTo}`;let miss=0,i=0;
+    busy("جاري تجهيز ملخص الإقرار…");try{const d=vatPdfDoc();if(d)z.file(nm(`${top}/VAT_Summary.pdf`),await makePdfBlob(d.html,d.land))}catch{}
+    for(const o of L){i++;busy(`ملف ${i} من ${L.length}: ${o.no} — سيب الصفحة مفتوحة`);miss+=await zipOrderInto(z,o,"",`${top}/${safeName(o.no)}/`,nm)}
+    busy("جاري ضغط الملف…");const blob=await z.generateAsync({type:"blob"});busy(null);
+    await DL.save({filename:`${top}.zip`,data:blob});toast(miss?`تم الحفظ (${L.length} ملف)، وتعذر إضافة ${miss} مرفق`:`تم حفظ ${L.length} ملف فواتير`)}
+  catch(e){busy(null);if(!e||e.code!=="declined")toast("تعذر تجهيز الملف")}}
 function orderPdf(id){const key=decodeURIComponent(id);const o=allOrders().find(x=>x.key===key);if(!o)return;SENDTO=ctxO(o);savePdf(orderSummaryHTML(o),`${safeName(o.no)}_Summary.pdf`,true)}
 function orderSummaryHTML(o){const fin=can("bills");
   const kv=`<div class="kv"><div><span>وارد من العميل</span><b>${sm(o,"inT")}</b></div><div><span>المحصّل</span><b>${sm(o,"inPaid")}</b></div><div><span>متبقي على العميل</span><b>${sm(o,"inDue")}</b></div>${fin?`<div><span>صافي الربح</span><b>${sm(o,"profit")}</b></div><div><span>صادر للموردين</span><b>${sm(o,"outT")}</b></div><div><span>متبقي للموردين</span><b>${sm(o,"outDue")}</b></div><div><span>مصروفات</span><b>${sm(o,"exp")}</b></div><div><span>هامش الربح</span><b>${o.margin.toFixed(1)}%</b></div>`:""}</div>`;
@@ -2560,7 +2597,7 @@ function showInvoice(id){
   modal(`<div class="head" style="margin-bottom:10px"><div><h2 style="margin:0">فاتورة ${esc(inv.no)} <span class="pill ${s[1]}">${s[0]}</span></h2><p>${can("orders")?`<a class="pill p-br" style="text-decoration:none;cursor:pointer" data-act="orderOpen" data-id="${encodeURIComponent(okey(ordInv(inv)))}">أوردر ${esc(ordInv(inv))}</a> · `:""}${esc(inv.customerName)} · المتبقي ${cm(c.due,docCur(inv))}</p>${whoLine(inv)}</div>
   <div class="tools"><button data-act="invWa" style="color:#14924a;border-color:#25D36666;background:#25D36614;display:inline-flex;gap:5px;align-items:center">${WA_IC}ابعت الفاتورة واتساب</button>${c.due>0.004?(()=>{const x=ctxInv(inv);return waA(x.phone,waMsg("waPay",x),"تذكير بالدفع")})():""}<button class="primary" data-act="invPdf0">${ic("dl")}الفاتورة الأولية PDF</button>${invHasPay(inv)?`<button class="primary" data-act="invPdf">${ic("dl")}الفاتورة بالدفعات PDF</button>`:""}${ed?`${c.due>0.004?`<button data-act="addPay">${ic("plus")}تسجيل دفعة</button>`:""}${c.credit>0?`<button class="primary" data-act="refDoc" data-id="${inv.id}">${ic("cash")}استرداد للعميل</button>`:""}<button data-act="editInv">تعديل</button>${inv.cancelled?`<button data-act="uncancel">التراجع عن الإلغاء</button>`:`<button data-act="cancelInv">إلغاء الحجز</button>`}<button class="danger" data-act="delInv">حذف</button>`:""}<button data-act="close">إغلاق</button></div></div>
   ${payBox?`<div class="card" style="margin-bottom:10px"><h3>تسجيل دفعة على الفاتورة ${esc(inv.no)}</h3><div class="stats"><div><span>إجمالي الفاتورة</span><b>${cm(c.total,docCur(inv))}</b></div><div><span>المدفوع سابقًا</span><b>${cm(c.paid,docCur(inv))}</b></div><div><span>المتبقي قبل الدفعة</span><b class="neg">${cm(c.due,docCur(inv))}</b></div><div><span>المتبقي بعد الدفعة</span><b id="pp_after">${cm(0,docCur(inv))}</b></div></div><div class="grid2"><label class="f">المبلغ المدفوع الآن<input type="number" step="0.01" id="pp_amt" value="${c.due>0?c.due:""}"></label><label class="f">التاريخ<input type="date" id="pp_date" value="${today()}"></label><label class="f">طريقة الدفع<select id="pp_m">${INVPAYM.map(p=>`<option>${p}</option>`).join("")}</select></label>${payCurHTML("pp",docCur(inv))}</div><div class="foot"><button class="primary" data-act="payOk">حفظ الدفعة</button><button data-act="payCancel">إلغاء</button></div></div>`:""}
-  ${(inv.payments||[]).length?`<div class="tablewrap solo" style="margin-bottom:10px"><table class="t"><thead><tr><th>تاريخ الدفعة</th><th>الطريقة</th><th>سجّلها</th><th>الإيصال</th><th class="n">المبلغ</th><th></th></tr></thead><tbody>${inv.payments.map((p,i)=>`<tr><td>${dAr(p.date)}</td><td>${esc(p.method||"")}</td><td class="muted">${esc(p.by||"")}</td><td>${p.receipt?`<a href="/_blob/${esc(p.receipt.assetId)}" target="_blank" rel="noopener" style="color:var(--brand)">عرض الإيصال</a>`:ed?`<button class="ghost sm" data-act="rcptAdd" data-k="inv" data-id="${inv.id}" data-i="${i}">📎 ارفع الإيصال</button>`:`<span class="muted">—</span>`}</td><td class="n">${cm(p.amount,docCur(inv))}${payOrig(p)}</td><td>${ed?`<button class="ghost sm danger" data-act="rmPay" data-i="${i}">حذف</button>`:""}</td></tr>`).join("")}</tbody></table></div>`:""}
+  ${(inv.payments||[]).length?`<div class="tablewrap solo" style="margin-bottom:10px"><table class="t"><thead><tr><th>تاريخ الدفعة</th><th>الطريقة</th><th>سجّلها</th><th>الإيصال</th><th class="n">المبلغ</th><th></th></tr></thead><tbody>${inv.payments.map((p,i)=>`<tr><td>${dAr(p.date)}</td><td>${esc(p.method||"")}${p.note?`<div class="sub">📝 ${esc(p.note)}</div>`:""}</td><td class="muted">${esc(p.by||"")}</td><td>${p.receipt?`<a href="/_blob/${esc(p.receipt.assetId)}" target="_blank" rel="noopener" style="color:var(--brand)">عرض الإيصال</a>`:ed?`<button class="ghost sm" data-act="rcptAdd" data-k="inv" data-id="${inv.id}" data-i="${i}">📎 ارفع الإيصال</button>`:`<span class="muted">—</span>`}</td><td class="n">${cm(p.amount,docCur(inv))}${payOrig(p)}</td><td>${ed?`<button class="ghost sm danger" data-act="rmPay" data-i="${i}">حذف</button>`:""}</td></tr>`).join("")}</tbody></table></div>`:""}
   <div class="paperwrap">${invoicePaper(inv)}</div>`,"wide");
   const pa=$("#pp_amt");if(pa){let ppv=null;const up=()=>{const v=ppv==null?(+pa.value||0):ppv;const a=r2(c.due-v);const el=$("#pp_after");el.textContent=cm(Math.max(a,0),docCur(inv));el.className=a>0.004?"neg":"pos"};pa.addEventListener("input",()=>{if(($("#pp_pc")||{}).value===docCur(inv))ppv=null;up()});payCurInit("pp",docCur(inv),"pp_amt","pp_date",v=>{ppv=v;up()});up()}
 }
@@ -3797,6 +3834,7 @@ document.addEventListener("click",async e=>{
     case "tripStage":{const u=UI.trips;u.f.st=u.f.st===t.dataset.v?"":t.dataset.v;render();break}
     case "orderPdf":orderPdf(id);break;
     case "orderZip":orderZip(id);break;
+    case "vatZip":vatZip();break;
     case "prevDl":prevDownload();break;
     case "vNew":vForm(null);break;
     case "vNewOrd":{const o=allOrders().find(x=>x.id===id);vForm(null,o?o.no:"");break}
@@ -3862,6 +3900,8 @@ document.addEventListener("click",async e=>{
     case "addPay":{const iid=OPEN.id;payDlg("inv",iid,{type:"inv",id:iid});break}
     case "payDoc":payDlg(t.dataset.k,id,OPEN?{...OPEN}:null);break;
     case "rcptAdd":rcptAttach(t.dataset.k,t.dataset.id,+t.dataset.i);break;
+    case "pdSplitAdd":pdSplitAdd();break;
+    case "pdSplitRm":t.closest(".pdrow").remove();pdTot();break;
     case "payDlgOk":payDlgSave();break;
     case "refDoc":refDlg(id,OPEN?{...OPEN}:null);break;
     case "refOk":refSave();break;
@@ -4041,7 +4081,7 @@ document.addEventListener("click",async e=>{
     case "payDel":{const doc=S.payroll.find(p=>p.id===payMonth);const i=+t.dataset.i,k=+t.dataset.k;const lines=doc.lines.map((x,j)=>j===i?{...x,pays:(x.pays||[]).filter((_,n)=>n!==k)}:x);await paySaveLines(doc,lines,i);toast("اتلغت الدفعة");break}
     case "slip":slipPdf(+t.dataset.i);break;
     case "vatQ":[vatFrom,vatTo]=qRange(t.dataset.v);render();break;
-    case "vatPdf":savePdf(reportHTML("ملخص إقرار ضريبة القيمة المضافة",`الفترة من ${dAr(vatFrom)} إلى ${dAr(vatTo)}`,repTable([{h:"الخانة"},{h:"الوصف"},{h:"المبلغ",n:1},{h:"الضريبة",n:1}],vatRows().map(r=>[r[0],r[1],r[2]??"",r[3]??""]),null),false),`vat-${vatFrom}-${vatTo}.pdf`,false);break;
+    case "vatPdf":{const d=vatPdfDoc();savePdf(d.html,`vat-${vatFrom}-${vatTo}.pdf`,d.land);break}
     case "vatCsv":saveCsv([["Period",`${vatFrom} to ${vatTo}`],["Box","Description","Amount","VAT"],...vatRows().map(r=>[r[0],r[1],r[2]??"",r[3]??""])],`vat-${vatFrom}-${vatTo}.csv`);break;
     case "addAcc":accForm();break;
     case "editAcc":accForm(S.accounts.find(x=>x.id===id));break;
