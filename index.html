@@ -1029,7 +1029,9 @@ async function makePdfBlob(html,land){
   const holder=document.createElement("div");holder.style.cssText="position:fixed;left:-12000px;top:0";holder.innerHTML=html;document.body.appendChild(holder);i18nTree(holder);
   try{try{await document.fonts.ready}catch{}
     const el=holder.firstElementChild;el.style.boxShadow="none";
-    return await html2pdf().set({margin:0,image:{type:"jpeg",quality:.95},html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff"},jsPDF:{unit:"mm",format:"a4",orientation:land?"landscape":"portrait"},pagebreak:{mode:["css","legacy"],avoid:["tr",".avoid"]}}).from(el).outputPdf("blob");
+    /* html2canvas shifts the page down by the window scroll → render from the top, then scroll back */
+    const sx=window.scrollX,sy=window.scrollY;window.scrollTo(0,0);
+    try{return await html2pdf().set({margin:0,image:{type:"jpeg",quality:.95},html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff",scrollX:0,scrollY:0,windowWidth:1200},jsPDF:{unit:"mm",format:"a4",orientation:land?"landscape":"portrait"},pagebreak:{mode:["css","legacy"],avoid:["tr",".avoid"]}}).from(el).outputPdf("blob")}finally{window.scrollTo(sx,sy)}
   }finally{holder.remove()}
 }
 async function saveCsv(rows,filename,direct){
