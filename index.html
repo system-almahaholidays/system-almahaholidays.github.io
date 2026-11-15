@@ -2093,7 +2093,7 @@ const aiOn=()=>!!((typeof SAMPLE!=="undefined"&&SAMPLE)||(set().aiKey||"").trim(
 const aiRulesTxt=extra=>[set().aiRules,extra].map(x=>String(x||"").trim()).filter(Boolean).join("\n");
 /* plain-text trip summaries the AI uses to write client messages */
 function tripTxtV(v){if(!v)return"";const st=(v.stays||[]).filter(s=>s.hotel);const days=(v.days||[]).filter(d=>d.title||d.text);
-  return[`Guests: ${+v.adults||0} adults${+v.children?`, ${v.children} children`:""}${+v.infants?`, ${v.infants} infants`:""}`,`Service: ${VSVC_EN[v.service]||""}`,...st.map(s=>`Hotel: ${s.hotel} (${s.city||""}) ${s.checkIn||""} to ${s.checkOut||""}, ${s.board||""}${s.room?", "+s.room:""}`),...days.map(d=>`Day ${d.day} (${d.date}, ${d.city||""}): ${d.title||""}${d.text?" — "+String(d.text).slice(0,180):""}`)].join("\n")}
+  return[`Guests: ${+v.adults||0} adults${+v.children?`, ${v.children} children`:""}${+v.infants?`, ${v.infants} infants`:""}`,`Service: ${VSVC_EN[v.service]||""}${v.visa?" + Visa":""}${(v.extras||[]).filter(Boolean).length?" + "+v.extras.filter(Boolean).join(", "):""}`,...st.map(s=>`Hotel: ${s.hotel} (${s.city||""}) ${s.checkIn||""} to ${s.checkOut||""}, ${s.board||""}${s.room?", "+s.room:""}`),...days.map(d=>`Day ${d.day} (${d.date}, ${d.city||""}): ${d.title||""}${d.text?" — "+String(d.text).slice(0,180):""}`)].join("\n")}
 function tripTxtQ(q){if(!q)return"";const hs=(q.hotels||[]).filter(h=>h.name);
   return[`Country: ${q.country||""}${q.cities?` (${q.cities})`:""}`,q.from?`Dates: ${q.from} to ${q.to||""} (${qNights(q)} nights)`:`Nights: ${qNights(q)}`,`Travelers: ${+q.adults||0} adults${+q.children?`, ${q.children} children`:""}`,...hs.map(h=>`Hotel: ${h.name} (${h.city||""})${h.nights?` ${h.nights} nights`:""}`),...(q.days||[]).filter(d=>d.title).map((d,i)=>`Day ${i+1}: ${d.title}${d.desc?" — "+String(d.desc).slice(0,150):""}`),`Includes: ${qIncludes(q).join("; ")}`].join("\n")}
 function tripTxtInv(inv){const c=custById(inv.customerId)||{};const v=(typeof vouchersFor==="function"?vouchersFor(ordInv(inv)):[])[0];
@@ -2208,7 +2208,7 @@ function vForm(vid,preset){
 }
 function vSync(){const v=VD.v;document.querySelectorAll("#layer [data-vf]").forEach(el=>{const p=el.dataset.vf.split(".");let o=v;for(let i=0;i<p.length-1;i++)o=o[p[i]];const k=p[p.length-1];o[k]=el.type==="checkbox"?el.checked:el.type==="number"?(+el.value||0):el.value})}
 function drawV(){
-  const v=VD.v;v.days=vchDays(v);const tot=(+v.adults||0)+(+v.children||0)+(+v.infants||0);const hasCar=v.service==="car";const pkg=v.service==="package";
+  const v=VD.v;v.extras=v.extras||[];v.days=vchDays(v);const tot=(+v.adults||0)+(+v.children||0)+(+v.infants||0);const hasCar=v.service==="car";const pkg=v.service==="package";
   const inp=(path,val,attrs="")=>`<input data-vf="${path}" value="${esc(val??"")}" ${attrs}>`;
   const stays=(v.multi?v.stays:v.stays.slice(0,1)).map((s,i)=>`<div class="card" style="margin-bottom:8px;padding:12px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b>${v.multi?`الفندق ${i+1}`:"الفندق"}</b>${v.multi&&v.stays.length>1?`<button class="ghost sm danger" data-act="vStayRm" data-i="${i}">حذف</button>`:""}</div><div class="grid2">
    <label class="f">اسم الفندق<input data-vf="stays.${i}.hotel" value="${esc(s.hotel)}" dir="ltr"></label><label class="f">المدينة<input data-vf="stays.${i}.city" value="${esc(s.city)}" dir="ltr" placeholder="Tbilisi"></label>
@@ -2224,6 +2224,11 @@ function drawV(){
   <div class="sec">الإقامة</div><div class="seg" style="margin-bottom:10px"><button class="${!v.multi?"on":""}" data-act="vMulti" data-v="0">فندق واحد</button><button class="${v.multi?"on":""}" data-act="vMulti" data-v="1">إقامة متعددة (أكتر من فندق)</button></div>
   ${stays}${v.multi?`<button class="ghost" data-act="vStayAdd">${ic("plus")}إضافة فندق</button>`:""}
   <div class="sec">الخدمات</div><div class="chks" style="margin-bottom:10px">${Object.entries(VSVC).map(([k,l])=>`<label><input type="radio" name="vsvc" data-act="vSvc" value="${k}" ${v.service===k?"checked":""}><span>${l}</span></label>`).join("")}</div>
+  <div class="card" style="margin-bottom:10px;padding:12px"><b style="display:block;margin-bottom:8px">خدمات إضافية</b>
+   <label style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input type="checkbox" data-vf="visa" ${v.visa?"checked":""} style="width:18px;height:18px"> <span>التأشيرة (Visa)</span></label>
+   ${(v.extras||[]).map((x,i)=>`<div style="display:flex;gap:6px;margin-bottom:6px"><input data-vf="extras.${i}" value="${esc(x)}" dir="ltr" list="vexlist" placeholder="Travel insurance / SIM card / ..." style="flex:1"><button class="ghost sm danger" data-act="vExRm" data-i="${i}">حذف</button></div>`).join("")}
+   <datalist id="vexlist">${[...new Set(["Travel insurance","SIM card","Airport meet & assist","Tour guide","Entrance tickets",...(S.vouchers||[]).flatMap(x=>x.extras||[])].filter(Boolean))].map(x=>`<option value="${esc(x)}">`).join("")}</datalist>
+   <button class="ghost sm" data-act="vExAdd">＋ إضافة خدمة يدوي</button></div>
   ${hasCar?`<div class="card" style="margin-bottom:10px"><h3>تفاصيل السيارة</h3><div class="grid2"><label class="f">نوع السيارة<input data-vf="car.model" dir="ltr" value="${esc(v.car.model)}" placeholder="Toyota Camry or similar"></label>
    <label class="f">القير<select data-vf="car.gear">${["Automatic","Manual"].map(x=>`<option ${v.car.gear===x?"selected":""}>${x}</option>`).join("")}</select></label><label class="f">التأمين<select data-vf="car.insurance">${["Full Insurance","Basic Insurance"].map(x=>`<option ${v.car.insurance===x?"selected":""}>${x}</option>`).join("")}</select></label>
    <label class="f">الوديعة<select data-vf="car.deposit">${["Refundable Deposit","No Deposit"].map(x=>`<option ${v.car.deposit===x?"selected":""}>${x}</option>`).join("")}</select></label><label class="f">الكيلومترات<select data-vf="car.km">${["Unlimited Mileage","Limited Mileage"].map(x=>`<option ${v.car.km===x?"selected":""}>${x}</option>`).join("")}</select></label>
@@ -2245,7 +2250,7 @@ function vDayInput(t){const i=+t.dataset.vday,k=t.dataset.k;const d=VD.v.days[i]
 async function vAI(){
   vSync();const v=VD.v;v.days=vchDays(v);if(!v.days.length||!aiOn())return;const hasCar=v.service==="car";const box=$("#v_ai");box.textContent="الذكاء الاصطناعي بيكتب البرنامج… (ممكن ياخد دقيقة)";
   const stays=v.stays.filter(s=>s.checkIn&&s.checkOut).sort((a,b)=>a.checkIn.localeCompare(b.checkIn));
-  const brief={guests:{adults:v.adults,children:v.children,infants:v.infants},service:VSVC_EN[v.service],car:hasCar?v.car:null,package_includes:v.service==="package"?v.incl:null,
+  const brief={guests:{adults:v.adults,children:v.children,infants:v.infants},service:VSVC_EN[v.service],extra_services:[...(v.visa?["Visa"]:[]),...(v.extras||[]).filter(Boolean)],car:hasCar?v.car:null,package_includes:v.service==="package"?v.incl:null,
     tour_cities_in_order:vPlan(v).map(p=>({city:p.city,days:+p.days,type:p.kind==="free"?"free days":"tours"})),
     hotels_in_order:stays.map(s=>({hotel:s.hotel,city:s.city,check_in:s.checkIn,check_out:s.checkOut,board:s.board})),
     days:v.days.map(d=>({day:d.day,date:d.date,city:d.city,type:d.type,tour_included:!d.noTour,check_out_from:d.from?`${d.from.hotel} (${d.from.city})`:null,check_in_to:d.to&&d.type!=="arrival"?`${d.to.hotel} (${d.to.city})`:null,overnight:d.overnight||null}))};
@@ -2285,7 +2290,7 @@ function dayPhotos(d,idx){return[];if((d.photos||[]).length)return d.photos.slic
 function vPaper(v){
   const st=set();const stays=(v.stays||[]).filter(s=>s.hotel||s.checkIn).sort((a,b)=>(a.checkIn||"").localeCompare(b.checkIn||""));const days=v.days&&v.days.length?v.days:vchDays(v);const hasCar=v.service==="car";
   const tot=(+v.adults||0)+(+v.children||0)+(+v.infants||0);const nights=stays.reduce((a,s)=>a+nightsOf(s.checkIn,s.checkOut),0);const cities=[...new Set(stays.map(s=>s.city).filter(Boolean))];
-  const inc=[...(v.service==="hotel"?["Hotel accommodation"]:[]),...(v.service==="transfer"?["Hotel accommodation","Airport transfers"]:[]),...(hasCar?["Hotel accommodation","Car rental"]:[]),...(v.service==="package"?["Hotel accommodation",...(v.incl.breakfast?["Daily breakfast"]:[]),...(v.incl.transfers?["All transfers"]:[]),...(v.incl.tours?["Guided tours"]:[])]:[])];
+  const inc=[...(v.service==="hotel"?["Hotel accommodation"]:[]),...(v.service==="transfer"?["Hotel accommodation","Airport transfers"]:[]),...(hasCar?["Hotel accommodation","Car rental"]:[]),...(v.service==="package"?["Hotel accommodation",...(v.incl.breakfast?["Daily breakfast"]:[]),...(v.incl.transfers?["All transfers"]:[]),...(v.incl.tours?["Guided tours"]:[])]:[]),...(v.visa?["Visa"]:[]),...(v.extras||[]).map(x=>String(x).trim()).filter(Boolean)];
   const O="#e3922a",OD="#c0700f",OL="#fbe9d2",CR="#fdf6ee",LN="#f1e2d0",TX="#3a2e24",MU="#94806c";
   const cap=`font-size:8px;letter-spacing:1.8px;text-transform:uppercase;color:${MU};font-weight:700`;
   const sec=t=>`<div style="display:flex;align-items:center;gap:3mm;margin:6mm 0 3.5mm"><span style="width:2.5mm;height:2.5mm;border-radius:50%;background:${O}"></span><span style="font-size:9.5px;letter-spacing:2.2px;text-transform:uppercase;color:${OD};font-weight:700;white-space:nowrap">${t}</span><span style="flex:1;height:1px;background:${LN}"></span></div>`;
@@ -2312,7 +2317,7 @@ function vPaper(v){
       <div style="display:flex;gap:7mm;margin-top:2mm;font-size:10.5px;color:${TX}"><div><span style="${cap}">Check-in</span><div style="font-weight:700">${s.checkIn?dEn(s.checkIn):"—"}</div></div><div><span style="${cap}">Check-out</span><div style="font-weight:700">${s.checkOut?dEn(s.checkOut):"—"}</div></div></div></div>
      <div style="text-align:center;background:${OL};border-radius:2.5mm;padding:2.5mm 4.5mm"><div style="font-size:22px;font-weight:700;color:${OD};line-height:1">${nightsOf(s.checkIn,s.checkOut)}</div><div style="${cap};color:${OD}">Nights</div></div></div>`).join("")}</div>
    <div style="display:grid;grid-template-columns:${hasCar?"1fr 1fr":"1fr"};gap:4mm;margin-top:5mm">
-    <div style="background:${CR};border-radius:3mm;padding:4mm;border:1px solid ${LN}"><div style="${cap};color:${OD};margin-bottom:2.5mm">What's Included</div>${inc.map(x=>`<div style="font-size:11px;padding:1mm 0;display:flex;gap:2mm;align-items:center;color:${TX}"><span style="width:4mm;height:4mm;border-radius:50%;background:${O};color:#fff;display:inline-grid;place-items:center;font-size:8px;font-weight:700">✓</span>${x}</div>`).join("")}</div>
+    <div style="background:${CR};border-radius:3mm;padding:4mm;border:1px solid ${LN}"><div style="${cap};color:${OD};margin-bottom:2.5mm">What's Included</div>${inc.map(x=>`<div style="font-size:11px;padding:1mm 0;display:flex;gap:2mm;align-items:center;color:${TX}"><span style="width:4mm;height:4mm;border-radius:50%;background:${O};color:#fff;display:inline-grid;place-items:center;font-size:8px;font-weight:700">✓</span>${esc(x)}</div>`).join("")}</div>
     ${hasCar?`<div style="background:${CR};border-radius:3mm;padding:4mm;border:1px solid ${LN}"><div style="${cap};color:${OD};margin-bottom:2.5mm">Car Rental</div><div style="display:grid;grid-template-columns:auto 1fr;gap:1mm 5mm;font-size:10.5px;color:${TX}">${[["Vehicle",v.car.model],["Transmission",v.car.gear],["Insurance",v.car.insurance],["Deposit",v.car.deposit],["Mileage",v.car.km],["Pick-up",v.car.pickup],["Drop-off",v.car.dropoff]].filter(x=>x[1]).map(([a,b])=>`<span style="color:${MU}">${a}</span><b style="text-align:right">${esc(b)}</b>`).join("")}</div></div>`:""}</div>
   </div>`);
   // itinerary pages
@@ -3786,6 +3791,8 @@ document.addEventListener("click",async e=>{
     case "vMulti":vSync();VD.v.multi=t.dataset.v==="1";if(VD.v.multi&&VD.v.stays.length<2)VD.v.stays.push({hotel:"",city:"",checkIn:VD.v.stays[0].checkOut||"",checkOut:"",room:"",board:VD.v.stays[0].board});drawV();break;
     case "vStayAdd":{vSync();const l=VD.v.stays[VD.v.stays.length-1];VD.v.stays.push({hotel:"",city:"",checkIn:l.checkOut||"",checkOut:"",room:"",board:l.board});drawV();break}
     case "vStayRm":vSync();VD.v.stays.splice(+t.dataset.i,1);drawV();break;
+    case "vExAdd":vSync();(VD.v.extras=VD.v.extras||[]).push("");drawV();break;
+    case "vExRm":vSync();VD.v.extras.splice(+t.dataset.i,1);drawV();break;
     case "vSvc":vSync();VD.v.service=t.value;VD.v.days.forEach(d=>{if(!d.typeEdited)d.type=""});drawV();break;
     case "vAI":vAI();break;
     case "vPlanAdd":{vSync();const v=VD.v;if(!Array.isArray(v.plan)||!v.plan.length)v.plan=JSON.parse(JSON.stringify(vPlan(v)));v.plan.push({city:"",days:1,kind:"tour"});v.planEdited=true;drawV();break}
